@@ -1,0 +1,20 @@
+[
+  {
+    "id": "dae999e14a7a72da1c8dd436cd5d906e",
+    "username": "admin",
+    "team": "",
+    "file_name": "SKILL.md",
+    "file_path": "report_dae999e14a7a72da1c8dd436cd5d906e.docx",
+    "created_at": 1776069836,
+    "finding_count": 0,
+    "high_risk": 0,
+    "medium_risk": 0,
+    "low_risk": 0,
+    "no_risk": true,
+    "score": 0,
+    "risk_level": "",
+    "p0_blocked": false,
+    "p0_reasons": null,
+    "item_scores": null
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "admin": {
+    "username": "admin",
+    "password_hash": "80444a32f9bbfea277c83ff7ccc36e215f24eea67c5e21b130ece9889754fb17:5048e6b6abf44cf9f838040b94767030ece53de2bb3b641ecb808368d629421c",
+    "team": "",
+    "role": "admin",
+    "created_at": 1775800475
+  },
+  "newuser": {
+    "username": "newuser",
+    "password_hash": "d5071fe166bd3bfa30dbc882707c540cda796ca8eb2c1cbf5037fa3c11853b00:796500bd0fdd7934b7d9b0b19083a6694fc1cc387520ce358f075f07d848b534",
+    "team": "Frontend",
+    "role": "member",
+    "created_at": 1775803019
+  }
+}

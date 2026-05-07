@@ -1,0 +1,530 @@
+version: "7.0"
+
+rules:
+  - id: "V7-001"
+    name: "恶意代码与破坏性行为"
+    severity: "高风险"
+    detection:
+      type: "pattern"
+      patterns:
+        - "(?i)rm\\s+-rf\\s+/"
+        - "(?i)dd\\s+if=/dev/zero"
+        - "(?i)nc\\s+-e\\s+/bin/sh"
+        - "(?i)bash\\s+-i\\s+>&\\s+/dev/tcp"
+        - "(?i)stratum\\+tcp://|xmrig|mining|ransom"
+        - "(?i)EncryptFile.*ransom"
+        - "(?i)(\\bc2\\b|\\bbeacon\\b|command\\s*and\\s*control)"
+        - "(?i)(pastebin|ngrok|torproject|duckdns)"
+        - "(?i)(irc://|ws://|wss://).*(bot|agent|control)"
+        - "(?i)eval\\(|exec\\(|system\\("
+    on_fail:
+      action: "block"
+      reason: "检测到恶意代码或破坏性行为"
+    review:
+      prompt_template: "仅在存在真实可达的破坏性命令、反弹 shell、挖矿、勒索、C2 或高危 eval/exec/system 链路时确认风险；必须排除文档、注释、测试样例和不可达示例。"
+      detection_criteria:
+        - "源码、脚本或配置中出现破坏性文件操作、反弹 shell、挖矿、勒索、C2 信标或动态执行高危调用。"
+        - "风险调用处于技能主流程、安装脚本、启动脚本或可由用户输入/远端数据触发的执行路径。"
+        - "命中证据需能说明实际影响，例如删除数据、远控执行、持久连接、加密勒索或执行任意代码。"
+      exclusion_conditions:
+        - "仅出现在 README、注释、测试、示例、规则库或安全教学文本中的字符串不确认风险。"
+        - "固定只读诊断命令、无 shell 拼接且经过 allowlist 的安全调用不按恶意代码确认。"
+      verification_requirements:
+        - "确认文件路径、入口函数、调用链和触发条件。"
+        - "确认是否存在用户输入、远端响应、环境变量或下载内容进入执行语句。"
+        - "确认沙箱行为、静态证据或 LLM reviewer 至少两类证据是否互相印证。"
+      output_requirements:
+        - "输出具体文件位置、命中片段、攻击路径、影响范围和误报排除依据。"
+        - "证据不足时输出 needs_manual_review，不得直接确认。"
+      remediation_focus: "移除破坏性和远控逻辑；必要执行能力必须改为固定参数、allowlist、最小权限和显式用户确认。"
+
+  - id: "V7-002"
+    name: "后门与条件触发逻辑"
+    severity: "高风险"
+    detection:
+      type: "pattern"
+      patterns:
+        - "(?i)(backdoor|debug_secret|admin_secret|magic_token)"
+        - "(?i)(debug|admin)_backdoor"
+        - "(?i)if.*(token|input|secret|password).*(exec|system|eval|shell)"
+        - "(?i)(time\\.After|time\\.Sleep|setTimeout).*?(exec|system|eval|shell)"
+    on_fail:
+      action: "block"
+      reason: "检测到后门或条件触发逻辑"
+    review:
+      prompt_template: "复核是否存在隐藏口令、魔法 token、调试后门、时间/条件触发执行链；仅在触发条件与敏感操作形成闭环时确认风险。"
+      detection_criteria:
+        - "存在 magic token、debug_secret、admin_secret、backdoor 等隐藏触发条件。"
+        - "条件分支后执行命令、加载远端代码、绕过校验、读取凭据或外发数据。"
+        - "触发逻辑未在技能声明、权限说明或用户交互中明确披露。"
+      exclusion_conditions:
+        - "公开配置开关、测试桩、文档示例或显式声明的管理员流程不直接视为后门。"
+        - "仅检查 token 或 password 但没有越权行为的正常鉴权逻辑不确认风险。"
+      verification_requirements:
+        - "确认触发条件是否可由用户、远端内容、环境变量或时间条件控制。"
+        - "确认触发后的敏感动作、权限影响和是否绕过正常授权。"
+      output_requirements:
+        - "输出隐藏触发条件、后续敏感行为、声明缺口和复现路径。"
+      remediation_focus: "删除隐藏触发逻辑；调试或管理员能力必须显式声明、鉴权、审计并默认关闭。"
+
+  - id: "V7-003"
+    name: "敏感数据外发与隐蔽通道"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "detectDataExfiltration"
+    on_fail:
+      action: "block"
+      reason: "检测到敏感数据外发或隐蔽通道"
+    review:
+      prompt_template: "仅在存在敏感数据源与外联目标之间的数据流、隐蔽通道或可疑信誉目标时确认外发风险；普通 API 请求需先排除。"
+      detection_criteria:
+        - "存在凭据、文件内容、环境变量、用户输入、上下文、日志或扫描结果进入 HTTP、WebSocket、DNS、邮件等外联通道。"
+        - "外联目标未在声明中说明，或使用短链、Pastebin、隧道、动态域名、IP、Tor、可疑域名。"
+        - "请求缺少最小化传输、用户授权、加密传输或目标白名单约束。"
+      exclusion_conditions:
+        - "明确声明且仅访问官方 API、包管理源、localhost 开发服务或无敏感字段的普通请求不确认风险。"
+        - "仅下载公开依赖且带完整性校验、无后续执行或敏感数据上传链路时不确认外发。"
+      verification_requirements:
+        - "确认数据源、外联目标、请求方法、传输字段和情报信誉。"
+        - "确认沙箱外联证据与静态/LLM 数据流判断是否一致。"
+      output_requirements:
+        - "输出 source -> sink 数据流、目标域名、传输字段、声明差异和误报排除依据。"
+      remediation_focus: "收敛外联到声明白名单，移除非必要字段，使用 HTTPS、完整性校验、用户授权和审计日志。"
+
+  - id: "V7-004"
+    name: "硬编码真实凭证"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "detectHardcodedCredential"
+    on_fail:
+      action: "block"
+      reason: "检测到硬编码真实凭证"
+    review:
+      prompt_template: "复核疑似凭证是否为真实可用密钥、token、私钥、连接串或云访问凭据；占位符和测试值必须排除。"
+      detection_criteria:
+        - "出现高熵 token、API key、私钥、数据库连接串、云 AK/SK、OAuth secret 或 bearer token。"
+        - "凭证位于源码、配置、脚本、日志或默认样例中，且可能随技能包分发。"
+        - "凭证后续用于外联、鉴权、数据库连接或第三方服务调用。"
+      exclusion_conditions:
+        - "placeholder、example、dummy、test、xxxx、<TOKEN> 等不可用占位符不确认风险。"
+        - "仅引用环境变量名、密钥管理接口或文档中的配置说明不确认硬编码。"
+      verification_requirements:
+        - "确认凭证类型、位置、是否随包发布、是否被代码读取使用。"
+        - "确认是否存在凭据外发、日志打印或跨任务缓存链路。"
+      output_requirements:
+        - "输出凭证类型和位置，但不得在报告中完整展示敏感值。"
+      remediation_focus: "删除硬编码凭据，轮换已暴露密钥，改用受控密钥管理和最小权限授权。"
+
+  - id: "V7-005"
+    name: "许可证验证配置缺陷"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluateLicenseValidationConfig"
+    on_fail:
+      action: "block"
+      reason: "检测到许可证验证失败放行、本地默认授权服务或可绕过配置"
+    review:
+      prompt_template: "复核许可证、授权或付费能力是否存在失败放行、默认授权、本地伪造服务或可配置绕过。"
+      detection_criteria:
+        - "授权校验失败时继续执行敏感能力或默认返回通过。"
+        - "存在 localhost/mock/license_server 默认授权、硬编码 license 或可由环境变量绕过校验。"
+        - "许可证状态未绑定用户、设备、租户或服务端可信验证。"
+      exclusion_conditions:
+        - "仅在测试环境、CI mock 或文档示例中出现的授权模拟不确认风险。"
+        - "开源免费功能且无访问控制要求的代码路径不按许可证绕过确认。"
+      verification_requirements:
+        - "确认授权失败分支、默认配置、环境变量和主流程调用点。"
+        - "确认绕过后可访问的能力、数据或付费资源。"
+      output_requirements:
+        - "输出失败放行路径、默认授权证据、影响能力和修复建议。"
+      remediation_focus: "授权失败必须 fail closed；移除默认放行和本地授权后门，关键授权由服务端可信校验。"
+
+  - id: "V7-006"
+    name: "技能声明与实际行为一致性"
+    severity: "高风险"
+    detection:
+      type: "llm_intent"
+    on_fail:
+      action: "block"
+      reason: "技能声明与实际行为严重不一致"
+    review:
+      prompt_template: "比较技能声明、源码能力、沙箱行为、LLM 意图和权限声明；仅在实际能力超出声明或声明掩盖敏感行为时确认高风险。"
+      detection_criteria:
+        - "声明未提及但源码或沙箱显示外联、命令执行、文件读写、凭据访问、持久化、提权或数据收集。"
+        - "声明用途与实际行为目标明显不一致，例如声称格式化文本但执行下载、外发或系统修改。"
+        - "权限声明缺失、过宽或与实际能力矩阵不一致。"
+      exclusion_conditions:
+        - "声明中已明确说明且行为被最小权限、用户授权和审计约束的能力不确认不一致。"
+        - "沙箱未触发但静态证据不足时标记待复核，不直接确认。"
+      verification_requirements:
+        - "确认声明来源、实际能力证据、沙箱行为和 LLM reviewer 裁决。"
+        - "确认能力差异是否影响用户安全、隐私或授权边界。"
+      output_requirements:
+        - "输出声明 -> 实际行为 -> 证据 -> 影响 -> 修复建议对照。"
+      remediation_focus: "同步更新声明和权限说明，删除未声明能力，或为必要能力补充显式授权、白名单和测试。"
+
+  - id: "V7-007"
+    name: "MCP 工具滥用与工具权限过大"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "detectMCPAbuse"
+    on_fail:
+      action: "block"
+      reason: "检测到 MCP 工具滥用或工具权限过大"
+    review:
+      prompt_template: "复核 MCP 工具是否暴露过大权限、可被用户输入驱动执行高危操作，或允许跨边界读取、写入、执行和外联。"
+      detection_criteria:
+        - "MCP tool 直接暴露 shell、文件系统、网络、浏览器、数据库或凭据访问能力。"
+        - "工具参数未做 schema 校验、allowlist、路径约束或权限分级。"
+        - "工具响应可被后续 LLM 当作指令执行，形成间接提示注入或工具链越权。"
+      exclusion_conditions:
+        - "只读、固定参数、最小权限且有明确 schema 约束的工具不确认滥用。"
+        - "仅声明工具名称但没有实现或调用路径时标记待复核。"
+      verification_requirements:
+        - "确认工具输入来源、权限范围、执行边界和调用链。"
+        - "确认是否存在用户输入到高危 tool 参数的直通路径。"
+      output_requirements:
+        - "输出 tool 名称、参数、权限范围、越权路径和防护缺口。"
+      remediation_focus: "为 MCP 工具增加 schema 校验、allowlist、最小权限、危险操作确认和响应隔离。"
+
+  - id: "V7-008"
+    name: "沙箱逃逸与提权风险"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "detectEnvironmentEvasion"
+    on_fail:
+      action: "block"
+      reason: "检测到沙箱逃逸、反分析或提权风险"
+    review:
+      prompt_template: "复核是否存在容器/沙箱逃逸、反虚拟化、差分执行、提权、sudo/setuid 或规避检测行为；需确认真实影响。"
+      detection_criteria:
+        - "探测容器、虚拟机、CI、用户名、进程、网络环境后改变执行行为。"
+        - "调用 sudo、setuid、capabilities、内核接口、Docker socket、宿主机挂载或敏感系统路径。"
+        - "存在延迟执行、条件触发、规避日志、关闭安全工具或防御规避行为。"
+      exclusion_conditions:
+        - "仅用于兼容性检测且不改变安全敏感行为的环境判断不确认风险。"
+        - "测试脚本、文档示例或无权限影响的系统信息读取不确认逃逸。"
+      verification_requirements:
+        - "确认差分执行证据、提权目标、权限变化和宿主机影响。"
+        - "确认沙箱探针告警与静态证据是否一致。"
+      output_requirements:
+        - "输出环境探测点、差分行为、提权路径、影响和排除依据。"
+      remediation_focus: "删除逃逸和提权路径；必要环境检测只能用于兼容提示，不能改变敏感执行链。"
+
+  - id: "V7-009"
+    name: "自更新与远程下载执行"
+    severity: "高风险"
+    detection:
+      type: "pattern"
+      patterns:
+        - "(?i)auto[_-]?update|self[_-]?update|download[_-]?and[_-]?exec"
+        - "(?i)(curl|wget).*?(bash|sh|python|node)"
+        - "(?i)http\\.(Get|Post).*?(exec|system|eval)"
+    on_fail:
+      action: "block"
+      reason: "检测到自更新或远程下载执行逻辑"
+    review:
+      prompt_template: "仅在远程下载内容进入执行、加载、安装、自更新或插件扩展链路时确认风险；普通下载需排除后续执行。"
+      detection_criteria:
+        - "curl、wget、http.Get、fetch、requests 等下载结果进入 bash、sh、python、node、exec、eval、system 或动态 import。"
+        - "自更新逻辑可替换本地代码、脚本、二进制、依赖或插件。"
+        - "缺少签名校验、哈希校验、版本锁定、来源白名单或用户确认。"
+      exclusion_conditions:
+        - "只下载公开数据文件且不执行、不加载、不覆盖代码的场景不确认高风险。"
+        - "带强校验、固定来源、不可由用户控制且仅安装声明依赖的流程可降为复核。"
+      verification_requirements:
+        - "确认下载 URL、落地路径、完整性校验和后续执行/加载链路。"
+        - "确认是否存在下载后执行时序或沙箱行为证据。"
+      output_requirements:
+        - "输出 download -> drop -> execute/load 的证据链和缺失校验。"
+      remediation_focus: "禁止下载后直接执行；必须固定来源、签名/哈希校验、版本锁定和人工确认。"
+
+  - id: "V7-010"
+    name: "依赖漏洞与恶意依赖"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluateDependencyVulns"
+    on_fail:
+      action: "block"
+      reason: "检测到高危漏洞、恶意依赖或不可信依赖"
+    review:
+      prompt_template: "复核依赖是否存在高危漏洞、恶意包、typosquatting、不可信源、动态安装或未锁版本；需结合实际可达性。"
+      detection_criteria:
+        - "依赖清单、安装脚本或运行时代码引用高危 CVE、恶意包、不可信 registry/source。"
+        - "存在动态安装依赖、未锁版本、直接从 URL/Git 下载执行或安装 postinstall 高危脚本。"
+        - "漏洞依赖处于技能主流程可达路径或影响安装/运行阶段。"
+      exclusion_conditions:
+        - "开发依赖、测试依赖或不可达依赖不直接按阻断确认，需标明可达性。"
+        - "已有固定版本、完整性锁定且漏洞不可利用时标记待复核。"
+      verification_requirements:
+        - "确认依赖名称、版本、来源、锁文件、安装脚本和可达路径。"
+        - "确认漏洞利用条件是否与技能运行环境匹配。"
+      output_requirements:
+        - "输出依赖、版本、来源、漏洞/恶意依据、可达性和升级路径。"
+      remediation_focus: "移除恶意或不可信依赖；锁定可信版本，升级修复版本，禁用高危安装脚本。"
+
+  - id: "V7-011"
+    name: "动态指令注入与可执行上下文拼接"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluateInjectionRisk"
+    on_fail:
+      action: "block"
+      reason: "检测到未防护的动态指令注入或可执行上下文拼接"
+    review:
+      prompt_template: "复核用户输入、远端响应、工具输出或文件内容是否进入 prompt、SQL、shell、模板、代码执行或解释器上下文且缺少隔离。"
+      detection_criteria:
+        - "外部可控数据拼接进 shell、SQL、模板、eval/exec、LLM system/developer prompt 或工具调用参数。"
+        - "缺少转义、参数化、schema 校验、上下文隔离、allowlist 或内容降权处理。"
+        - "注入后可能改变指令、执行命令、读取敏感信息或触发越权工具。"
+      exclusion_conditions:
+        - "使用参数化 API、固定模板变量、安全转义且无执行上下文的拼接不确认风险。"
+        - "仅展示用户输入、无后续执行或工具调用的路径不确认高风险。"
+      verification_requirements:
+        - "确认 source、sink、传播路径、上下文类型和已有防护。"
+        - "确认注入影响是否能改变执行结果或权限边界。"
+      output_requirements:
+        - "输出 source -> sink 路径、上下文、缺失防护和修复建议。"
+      remediation_focus: "使用参数化和结构化输入；隔离不可信内容，禁止用户数据直接进入可执行上下文。"
+
+  - id: "V7-012"
+    name: "权限声明与最小权限"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluatePermissions"
+    on_fail:
+      action: "block"
+      reason: "检测到过度权限声明或最小权限缺失"
+    review:
+      prompt_template: "复核权限声明是否超出实际需要，或实际能力未声明；重点检查网络、文件、命令、凭据、持久化和系统权限。"
+      detection_criteria:
+        - "声明要求 broad filesystem、network、shell、admin、credential 等高权限但实际功能不需要。"
+        - "实际代码使用高权限能力但声明缺失、范围过宽或没有用户授权。"
+        - "权限没有路径、域名、命令、数据类型、时间或任务范围限制。"
+      exclusion_conditions:
+        - "权限与声明用途匹配，且有 allowlist、最小范围和用户确认时不确认高风险。"
+        - "仅文档中提及可选权限但默认未启用时标记待复核。"
+      verification_requirements:
+        - "确认声明权限、实际能力矩阵、触发入口和边界控制。"
+        - "确认过度权限是否可导致数据泄露、越权执行或持久化。"
+      output_requirements:
+        - "输出权限项、实际用途、过度范围、缺失声明和最小化建议。"
+      remediation_focus: "按最小权限重写声明和实现；为路径、域名、命令和敏感数据建立 allowlist。"
+
+  - id: "V7-013"
+    name: "路径遍历与文件越权"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluatePathTraversal"
+    on_fail:
+      action: "block"
+      reason: "检测到路径遍历或文件越权风险"
+    review:
+      prompt_template: "复核外部可控路径是否可越权读取、写入、覆盖、删除或落地到敏感目录；必须检查规范化与根目录约束。"
+      detection_criteria:
+        - "用户输入、压缩包条目、远端文件名或配置路径进入文件读写/解压/删除/执行路径。"
+        - "缺少 filepath.Clean、路径归一化、根目录校验、符号链接处理或扩展名限制。"
+        - "可能访问 .ssh、凭据文件、系统目录、工作区外路径或覆盖启动脚本。"
+      exclusion_conditions:
+        - "固定路径、只读公开资源或已严格限制在工作目录 allowlist 内的访问不确认风险。"
+        - "仅路径拼接但没有文件操作 sink 时标记待复核。"
+      verification_requirements:
+        - "确认 path source、文件操作 sink、归一化逻辑和根目录逃逸可能性。"
+        - "确认是否存在 zip-slip、符号链接绕过或绝对路径写入。"
+      output_requirements:
+        - "输出可控路径、文件操作、逃逸目标、现有防护和修复建议。"
+      remediation_focus: "规范化路径并强制根目录约束；禁止符号链接绕过、绝对路径和敏感目录访问。"
+
+  - id: "V7-014"
+    name: "SSRF 与内网探测"
+    severity: "高风险"
+    detection:
+      type: "function"
+      function: "evaluateSSRFProtection"
+    on_fail:
+      action: "block"
+      reason: "检测到 SSRF 或内网探测风险"
+    review:
+      prompt_template: "复核外部可控 URL、host、proxy 或 webhook 是否可访问内网、metadata、localhost、Unix socket 或云控制面。"
+      detection_criteria:
+        - "用户输入、配置、远端响应或工具输出控制 HTTP/gRPC/WebSocket 请求目标。"
+        - "缺少 URL allowlist、私网 IP/localhost/metadata denylist、DNS rebinding 防护或重定向校验。"
+        - "存在端口探测、目录枚举、metadata 读取、代理转发或内网服务访问迹象。"
+      exclusion_conditions:
+        - "固定官方 API 域名、不可控目标且禁止重定向到私网时不确认 SSRF。"
+        - "仅请求 localhost 开发服务且不会随生产技能包启用时标记待复核。"
+      verification_requirements:
+        - "确认 URL source、请求 sink、解析流程、重定向策略和 DNS/IP 校验。"
+        - "确认是否能访问 127.0.0.1、169.254.169.254、10/172.16/192.168 网段或内网域名。"
+      output_requirements:
+        - "输出可控 URL 来源、目标校验缺口、潜在内网目标和修复建议。"
+      remediation_focus: "使用目标 allowlist，禁止私网/metadata/localhost，校验重定向和 DNS 解析结果。"
+
+  - id: "V7-015"
+    name: "工具响应投毒与间接提示注入"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateToolResponsePoisoning"
+    on_fail:
+      action: "review"
+      reason: "检测到工具响应投毒或间接提示注入风险"
+
+  - id: "V7-016"
+    name: "凭据缓存与跨任务隔离"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateCredentialIsolation"
+    on_fail:
+      action: "review"
+      reason: "检测到凭据缓存或跨任务隔离不足"
+
+  - id: "V7-017"
+    name: "敏感上下文与错误信息泄露"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateContextLeak"
+    on_fail:
+      action: "review"
+      reason: "检测到敏感上下文或错误信息泄露"
+
+  - id: "V7-018"
+    name: "外部软依赖完整性"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateSoftDependencies"
+    on_fail:
+      action: "review"
+      reason: "检测到外部软依赖完整性风险"
+
+  - id: "V7-019"
+    name: "不可逆或高影响操作审批"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateIrreversibleOpsApproval"
+    on_fail:
+      action: "review"
+      reason: "检测到不可逆或高影响操作缺少审批"
+
+  - id: "V7-020"
+    name: "输入 Schema"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateInputSchema"
+    on_fail:
+      action: "review"
+      reason: "检测到输入 Schema 或校验不足"
+
+  - id: "V7-021"
+    name: "日志审计与敏感信息脱敏"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateAuditLogging"
+    on_fail:
+      action: "review"
+      reason: "检测到日志审计或敏感信息脱敏不足"
+
+  - id: "V7-022"
+    name: "SBOM、版本锁定与来源可信"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateSBOMVersionLock"
+    on_fail:
+      action: "review"
+      reason: "检测到 SBOM、版本锁定或来源可信不足"
+
+  - id: "V7-023"
+    name: "TLS 证书和传输保护"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateTLSProtection"
+    on_fail:
+      action: "review"
+      reason: "检测到 TLS 证书或传输保护不足"
+
+  - id: "V7-024"
+    name: "文件上传和文件解析安全"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateFileUploadParsing"
+    on_fail:
+      action: "review"
+      reason: "检测到文件上传或文件解析安全风险"
+
+  - id: "V7-025"
+    name: "隐私合规与数据最小化"
+    severity: "中风险"
+    detection:
+      type: "function"
+      function: "evaluateDataMinimizationEvidence"
+    on_fail:
+      action: "review"
+      reason: "检测到隐私合规或数据最小化不足"
+
+  - id: "V7-026"
+    name: "资源耗尽与级联失败"
+    severity: "低风险"
+    detection:
+      type: "function"
+      function: "evaluateResourceRisk"
+    on_fail:
+      action: "remediate"
+      reason: "检测到资源耗尽或级联失败风险"
+
+  - id: "V7-027"
+    name: "记忆与上下文污染"
+    severity: "低风险"
+    detection:
+      type: "function"
+      function: "evaluateMemoryIsolation"
+    on_fail:
+      action: "remediate"
+      reason: "检测到记忆或上下文污染风险"
+
+  - id: "V7-028"
+    name: "不安全反序列化和模型文件加载"
+    severity: "低风险"
+    detection:
+      type: "function"
+      function: "evaluateUnsafeDeserialization"
+    on_fail:
+      action: "remediate"
+      reason: "检测到不安全反序列化或模型文件加载风险"
+
+  - id: "V7-029"
+    name: "隐藏内容、混淆与诱导性描述"
+    severity: "低风险"
+    detection:
+      type: "function"
+      function: "evaluateHiddenContent"
+    on_fail:
+      action: "remediate"
+      reason: "检测到隐藏内容、混淆或诱导性描述"
+
+  - id: "V7-030"
+    name: "调试接口与测试后门残留"
+    severity: "低风险"
+    detection:
+      type: "function"
+      function: "evaluateDebugBackdoor"
+    on_fail:
+      action: "remediate"
+      reason: "检测到调试接口或测试后门残留"

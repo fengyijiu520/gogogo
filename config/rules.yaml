@@ -1,0 +1,643 @@
+version: "2.0"
+
+risk_levels:
+  - threshold: 85
+    level: "low"
+    auto_approve: true
+  - threshold: 60
+    level: "medium"
+    require_review: true
+  - threshold: 0
+    level: "high"
+    block: true
+
+rules:
+  # ========== P0 阻断层 ==========
+  - id: "P0-001"
+    name: "恶意代码模式检测"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "pattern"
+      patterns:
+        - "rm\\s+-rf\\s+/"
+        - "dd\\s+if=/dev/zero"
+        - "nc\\s+-e\\s+/bin/sh"
+        - "bash\\s+-i\\s+>&\\s+/dev/tcp"
+        - "stratum\\+tcp://"
+        - "EncryptFile.*ransom"
+    on_fail:
+      action: "block"
+      reason: "检测到恶意代码模式"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-002"
+    name: "后门与条件触发逻辑"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "pattern"
+      patterns:
+        - "if.*(token|input|secret).*(exec|system|eval)"
+        - "(debug|admin)_backdoor"
+        - "time\\.(After|Sleep).*exec"
+    on_fail:
+      action: "block"
+      reason: "检测到后门或条件触发逻辑"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-003"
+    name: "敏感数据外发与隐蔽通道"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "function"
+      function: "detectDataExfiltration"
+    on_fail:
+      action: "block"
+      reason: "检测到敏感数据外发行为"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-004"
+    name: "硬编码凭证检测"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "function"
+      function: "detectHardcodedCredential"
+    on_fail:
+      action: "block"
+      reason: "检测到硬编码凭证"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-005"
+    name: "能力声明欺骗性检测"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "semantic"
+      threshold_low: 0.5
+      threshold_high: 0.75
+    on_fail:
+      action: "block"
+      reason: "能力声明与实现行为严重不一致"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-006"
+    name: "MCP工具滥用与投毒"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "function"
+      function: "detectMCPAbuse"
+    on_fail:
+      action: "block"
+      reason: "检测到 MCP 工具滥用或投毒风险"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-007"
+    name: "沙箱逃逸与提权风险"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "pattern"
+      patterns:
+        - "ptrace\\(PTRACE_ATTACH"
+        - "unshare\\(CLONE_NEWUSER"
+        - "capset\\("
+        - "/proc/self/ns"
+        - "mount\\s+-t"
+        - "setuid\\s*\\(0\\)"
+    on_fail:
+      action: "block"
+      reason: "检测到沙箱逃逸或提权行为"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-008"
+    name: "恶意C2通信检测"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "pattern"
+      patterns:
+        - "(c2|beacon|command\\s*and\\s*control)"
+        - "(pastebin|ngrok|torproject|duckdns)"
+        - "(irc://|ws://|wss://).*(bot|agent|control)"
+    on_fail:
+      action: "block"
+      reason: "检测到疑似恶意 C2 通信"
+    compensation: false
+    score_deduction: 0
+
+  - id: "P0-009"
+    name: "自动更新代码检测"
+    layer: "P0"
+    weight: 0
+    detection:
+      type: "pattern"
+      patterns:
+        - "auto[_-]?update"
+        - "self[_-]?update"
+        - "download(_and)?_exec"
+        - "(curl|wget).*(bash|sh|python)"
+    on_fail:
+      action: "block"
+      reason: "检测到技能自更新或远程下载执行逻辑"
+    compensation: false
+    score_deduction: 0
+
+  # ========== P1 核心层 ==========
+  - id: "P1-001"
+    name: "依赖组件高危漏洞检测"
+    layer: "P1"
+    weight: 16
+    detection:
+      type: "function"
+      function: "evaluateDependencyVulns"
+    on_fail:
+      action: "deduct"
+      default_deduction: 20
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 12
+
+  - id: "P1-002"
+    name: "动态指令注入风险"
+    layer: "P1"
+    weight: 12
+    detection:
+      type: "function"
+      function: "evaluateInjectionRisk"
+    on_fail:
+      action: "deduct"
+      default_deduction: 15
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 10
+
+  - id: "P1-003"
+    name: "权限声明与最小化原则"
+    layer: "P1"
+    weight: 9.6
+    detection:
+      type: "function"
+      function: "evaluatePermissions"
+    on_fail:
+      action: "deduct"
+      default_deduction: 12
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 8
+
+  - id: "P1-004"
+    name: "路径遍历与文件越权"
+    layer: "P1"
+    weight: 6.4
+    detection:
+      type: "pattern"
+      patterns:
+        - "\\.\\./"
+        - "filepath\\.Clean\\(.*user"
+        - "os\\.(Open|ReadFile|WriteFile)\\(.*\\+.*input"
+    on_fail:
+      action: "deduct"
+      default_deduction: 8
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 6
+
+  - id: "P1-005"
+    name: "SSRF与内网探测防护"
+    layer: "P1"
+    weight: 6.4
+    detection:
+      type: "function"
+      function: "evaluateSSRFProtection"
+    on_fail:
+      action: "deduct"
+      default_deduction: 8
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 6
+
+  - id: "P1-006"
+    name: "工具响应投毒防护"
+    layer: "P1"
+    weight: 10
+    detection:
+      type: "function"
+      function: "evaluateToolResponsePoisoning"
+    on_fail:
+      action: "deduct"
+      default_deduction: 10
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 7
+
+  - id: "P1-007"
+    name: "凭据缓存与跨任务隔离"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "function"
+      function: "evaluateCredentialIsolation"
+    on_fail:
+      action: "deduct"
+      default_deduction: 5
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 4
+
+  - id: "P1-008"
+    name: "敏感上下文泄露风险"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "function"
+      function: "evaluateContextLeak"
+    on_fail:
+      action: "deduct"
+      default_deduction: 5
+      no_compensation_block: true
+    compensation: false
+    score_deduction: 4
+
+  - id: "P1-009"
+    name: "外部软依赖完整性校验"
+    layer: "P1"
+    weight: 2.5
+    detection:
+      type: "function"
+      function: "evaluateSoftDependencies"
+    on_fail:
+      action: "deduct"
+      default_deduction: 4
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 3
+
+  - id: "P1-010"
+    name: "工具输入Schema校验"
+    layer: "P1"
+    weight: 1
+    detection:
+      type: "pattern"
+      patterns:
+        - "jsonschema"
+        - "validate\\(.*schema"
+        - "ajv|zod|pydantic"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 1
+
+  - id: "P1-011"
+    name: "日志安全审计能力"
+    layer: "P1"
+    weight: 1
+    detection:
+      type: "pattern"
+      patterns:
+        - "logger\\.(Info|Warn|Error|Audit)"
+        - "audit_log"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 1
+
+  - id: "P1-012"
+    name: "SBOM完整性"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "pattern"
+      patterns:
+        - "sbom\\.json"
+        - "SPDX"
+        - "CycloneDX"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P1-013"
+    name: "技能包哈希校验"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "pattern"
+      patterns:
+        - "sha256"
+        - "hashlib\\.sha256"
+        - "integrity"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P1-014"
+    name: "依赖源可信度与版本锁定"
+    layer: "P1"
+    weight: 1
+    detection:
+      type: "pattern"
+      patterns:
+        - "https://registry.npmjs.org"
+        - "replace\\s+.*=>"
+        - "==|@\\d+\\.\\d+\\.\\d+"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 1
+
+  - id: "P1-015"
+    name: "SSL/TLS证书校验检测"
+    layer: "P1"
+    weight: 3
+    detection:
+      type: "pattern"
+      patterns:
+        - "InsecureSkipVerify\\s*:\\s*true"
+        - "verify\\s*=\\s*False"
+        - "rejectUnauthorized\\s*:\\s*false"
+    on_fail:
+      action: "deduct"
+      default_deduction: 3
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 3
+
+  - id: "P1-016"
+    name: "文件上传安全检测"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "pattern"
+      patterns:
+        - "multipart/form-data"
+        - "UploadFile|SaveUploadedFile"
+        - "Content-Type"
+    on_fail:
+      action: "deduct"
+      default_deduction: 4
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 3
+
+  - id: "P1-017"
+    name: "LLM提示词注入防护检测"
+    layer: "P1"
+    weight: 5
+    detection:
+      type: "pattern"
+      patterns:
+        - "sanitizePrompt"
+        - "prompt_guard"
+        - "system_prompt.*user_input"
+    on_fail:
+      action: "deduct"
+      default_deduction: 5
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 4
+
+  - id: "P1-018"
+    name: "内容安全与输出审核检测"
+    layer: "P1"
+    weight: 1.5
+    detection:
+      type: "pattern"
+      patterns:
+        - "content_moderation"
+        - "safety_filter"
+        - "toxicity"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 1.5
+
+  - id: "P1-019"
+    name: "非确定性输入数据泄露风险"
+    layer: "P1"
+    weight: 3
+    detection:
+      type: "pattern"
+      patterns:
+        - "math/rand"
+        - "random\\.seed\\(time"
+        - "rand\\(\\)"
+    on_fail:
+      action: "deduct"
+      default_deduction: 3
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P1-020"
+    name: "调试/测试后门残留检测"
+    layer: "P1"
+    weight: 2
+    detection:
+      type: "pattern"
+      patterns:
+        - "debug\\s*==\\s*true"
+        - "/debug"
+        - "test_backdoor"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P1-021"
+    name: "资源耗尽与级联失败防护"
+    layer: "P1"
+    weight: 8
+    detection:
+      type: "function"
+      function: "evaluateResourceRisk"
+    on_fail:
+      action: "deduct"
+      default_deduction: 8
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 6
+
+  - id: "P1-022"
+    name: "NHI生命周期管理"
+    layer: "P1"
+    weight: 8
+    detection:
+      type: "pattern"
+      patterns:
+        - "credential_rotation"
+        - "token_ttl"
+        - "revoke"
+    on_fail:
+      action: "deduct"
+      default_deduction: 8
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 6
+
+  - id: "P1-023"
+    name: "记忆与上下文污染防护"
+    layer: "P1"
+    weight: 6
+    detection:
+      type: "function"
+      function: "evaluateMemoryIsolation"
+    on_fail:
+      action: "deduct"
+      default_deduction: 6
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 4
+
+  - id: "P1-024"
+    name: "跨技能安全通信检测"
+    layer: "P1"
+    weight: 4
+    detection:
+      type: "pattern"
+      patterns:
+        - "mTLS"
+        - "HMAC"
+        - "signature_verify"
+    on_fail:
+      action: "deduct"
+      default_deduction: 4
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 3
+
+  - id: "P1-025"
+    name: "Hook Point覆盖度评估"
+    layer: "P1"
+    weight: 3
+    detection:
+      type: "pattern"
+      patterns:
+        - "PreToolUse"
+        - "PreLLMRequest"
+        - "PostToolUse"
+    on_fail:
+      action: "deduct"
+      default_deduction: 3
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P1-026"
+    name: "不可逆操作审批机制"
+    layer: "P1"
+    weight: 3
+    detection:
+      type: "function"
+      function: "evaluateIrreversibleOpsApproval"
+    on_fail:
+      action: "deduct"
+      default_deduction: 4
+      no_compensation_block: true
+    compensation: true
+    score_deduction: 3
+
+  - id: "P1-027"
+    name: "数据最小化证据对照"
+    layer: "P1"
+    weight: 5
+    detection:
+      type: "function"
+      function: "evaluateDataMinimizationEvidence"
+    on_fail:
+      action: "deduct"
+      default_deduction: 5
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 3
+
+  # ========== P2 加固层 ==========
+  - id: "P2-001"
+    name: "隐藏风险内容检测"
+    layer: "P2"
+    weight: 5
+    detection:
+      type: "function"
+      function: "evaluateHiddenContent"
+    on_fail:
+      action: "deduct"
+      default_deduction: 5
+      no_compensation_block: false
+    compensation: false
+    score_deduction: 4
+
+  - id: "P2-002"
+    name: "模型文件安全扫描"
+    layer: "P2"
+    weight: 4
+    detection:
+      type: "pattern"
+      patterns:
+        - "pickle\\.load"
+        - "torch\\.load"
+        - "unsafe_deserialize"
+    on_fail:
+      action: "deduct"
+      default_deduction: 4
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 3
+
+  - id: "P2-003"
+    name: "技能描述高危词汇诱骗检测"
+    layer: "P2"
+    weight: 3
+    detection:
+      type: "pattern"
+      patterns:
+        - "破解版"
+        - "无限试用"
+        - "0day"
+    on_fail:
+      action: "deduct"
+      default_deduction: 3
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 2
+
+  - id: "P2-004"
+    name: "依赖安全更新订阅检测"
+    layer: "P2"
+    weight: 2
+    detection:
+      type: "pattern"
+      patterns:
+        - "dependabot"
+        - "renovate"
+        - "security_updates"
+    on_fail:
+      action: "deduct"
+      default_deduction: 2
+      no_compensation_block: false
+    compensation: true
+    score_deduction: 1
