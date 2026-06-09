@@ -1,0 +1,156 @@
+threat_signals:
+  - "命令执行"
+  - "下载后执行"
+  - "隐蔽通道"
+  - "凭据"
+  - "c2"
+  - "提权"
+  - "持久化"
+  - "外发"
+  - "exfil"
+  - "shell"
+  - "dropper"
+  - "subprocess"
+  - "os.system"
+  - "exec.command"
+false_positive:
+  weak_static_titles:
+    - "Python 系统包安装风险"
+    - "依赖漏洞与恶意依赖-高危漏洞依赖"
+    - "隐藏风险内容-代码混淆隐藏"
+    - "日志审计与敏感信息脱敏-关键事件无审计"
+    - "资源耗尽与级联失败-无限循环/无超时"
+    - "未声明的模拟动量回退导致可能基于虚假数据交易"
+  open_weak_titles:
+    - "依赖漏洞与恶意依赖-高危漏洞依赖"
+    - "隐藏风险内容-代码混淆隐藏"
+    - "隐私合规与数据最小化-过度收集个人信息"
+    - "Python 系统包安装风险"
+  evidence_intent_mismatch_markers:
+    - "主题与证据不匹配"
+    - "规则主题与证据不匹配"
+    - "未发现递归调用"
+    - "普通文件读取"
+    - "仅为文件读取"
+    - "仅本地读取"
+    - "仅本地 sqlite"
+    - "仅本地数据库读取"
+    - "当前缺少外发或暴露链路"
+    - "仅有规则侧建议"
+    - "需结合真实提交与用途核验"
+    - "无网络暴露"
+    - "没有代码实现"
+  refuted_primary_claims:
+    - title: "资源耗尽与级联失败-无限循环/无超时"
+      markers:
+        - "未发现递归调用"
+        - "与代码事实不符"
+        - "不成立"
+        - "无递归"
+    - title: "日志审计与敏感信息脱敏-关键事件无审计"
+      markers:
+        - "已有审计日志"
+        - "已有 logger"
+        - "已有 logger/audit"
+        - "存在审计记录"
+        - "已有结果记录"
+  category_refutations:
+    - category: "隐私合规与数据最小化"
+      markers:
+        - "sqlite3.connect"
+        - "select * from"
+        - "普通文件读取"
+        - "仅本地 sqlite"
+        - "仅本地数据库读取"
+        - "当前缺少外发或暴露链路"
+        - "仅本地读取"
+    - category: "暴露面与未鉴权服务"
+      markers:
+        - "不构成可利用的安全漏洞"
+        - "完整性或合规问题"
+        - "分类与证据不符"
+        - "功能缺失属于完整性或合规问题"
+scan_async:
+  direct_confirmation:
+    ssrf:
+      request_call: ["requests.get", "requests.post", "httpx", "urllib"]
+      user_controlled_input: ["target_url", "metadata", "169.254.169.254", "内网", "用户输入"]
+      dangerous_target: ["metadata", "169.254.169.254", "内网"]
+      missing_guard: ["缺少校验"]
+  runtime_closure:
+    categories_without_runtime: ["外联与情报", "凭据访问", "凭据暴露"]
+  weak_static_preference:
+    always_prefer_when_missing_at_least:
+      - category: "环境与构建风险"
+        missing_threshold: 3
+      - category: "静态规则发现"
+        missing_threshold: 3
+        require_open_closure: true
+      - category: "授权与许可证校验"
+        missing_threshold: 3
+        require_no_meaningful_closure: true
+      - category: "声明与行为差异"
+        missing_threshold: 3
+        require_no_meaningful_closure: true
+    evidence_intent_mismatch_categories: ["隐私合规与数据最小化", "声明与行为差异", "静态规则发现"]
+    open_weak_categories: ["环境与构建风险", "静态规则发现", "声明与行为差异", "隐私合规与数据最小化"]
+  closure_signals:
+    - category: "命令执行"
+      source: ["payload", "cmd", "command", "user input", "用户输入", "download", "下载", "requests.get", "wget", "curl", "decoded", "base64", "dropper", "写入脚本", "高危时序", "时序告警"]
+      transform: ["format(", "f-string", "拼接", "decode", "base64", "writefile", "tmp/", "临时文件", "command flow", "构造链"]
+      sink: ["os.system", "subprocess", "exec.command", "exec(", "bash", "sh", "shell", "执行链", "执行", "run("]
+    - category: "下载执行"
+      source: ["payload", "cmd", "command", "user input", "用户输入", "download", "下载", "requests.get", "wget", "curl", "decoded", "base64", "dropper", "写入脚本", "高危时序", "时序告警"]
+      transform: ["format(", "f-string", "拼接", "decode", "base64", "writefile", "tmp/", "临时文件", "command flow", "构造链"]
+      sink: ["os.system", "subprocess", "exec.command", "exec(", "bash", "sh", "shell", "执行链", "执行", "run("]
+    - category: "恶意代码"
+      source: ["payload", "cmd", "command", "user input", "用户输入", "download", "下载", "requests.get", "wget", "curl", "decoded", "base64", "dropper", "写入脚本", "高危时序", "时序告警"]
+      transform: ["format(", "f-string", "拼接", "decode", "base64", "writefile", "tmp/", "临时文件", "command flow", "构造链"]
+      sink: ["os.system", "subprocess", "exec.command", "exec(", "bash", "sh", "shell", "执行链", "执行", "run("]
+    - category: "外联与情报"
+      source: ["webhook", "target", "url", "domain", "http://", "https://", "外联", "c2", "upload"]
+      transform: ["json=", "data=", "payload", "content", "private_key", "token", "secret", "cookie", "body", "headers"]
+      sink: ["requests.post", "requests.get", "httpx", "urllib", "webhook", "post(", "send(", "网络链"]
+    - category: "凭据访问"
+      source: ["private_key", "token", "secret", "passphrase", ".netrc", "credential", "wallet_private_key"]
+      transform: ["json=", "data=", "content", "headers", "config.get", "open(", "sqlite", "serialize", "load"]
+      sink: ["requests.post", "webhook", "print(", "logger", "writefile", "sqlite", "signed_order", "create_order", "外发", "外联"]
+    - category: "凭据暴露"
+      source: ["private_key", "token", "secret", "passphrase", ".netrc", "credential", "wallet_private_key"]
+      transform: ["json=", "data=", "content", "headers", "config.get", "open(", "sqlite", "serialize", "load"]
+      sink: ["requests.post", "webhook", "print(", "logger", "writefile", "sqlite", "signed_order", "create_order", "外发", "外联"]
+    - category: "暴露面与未鉴权服务"
+      source: ["flask", "dashboard", "app =", "route(", "仪表板", "服务"]
+      transform: ["without auth", "未鉴权", "no auth", "no authentication", "未授权", "route", "debug"]
+      sink: ["app.run", "listen", "0.0.0.0", "127.0.0.1", "port=", "public network", "监听"]
+evaluator:
+  sensitive_signal_patterns:
+    "姓名": ["name", "full_name", "姓名"]
+    "手机号": ["phone", "mobile", "手机号", "电话"]
+    "邮箱": ["email", "邮箱"]
+    "身份证号": ["id_card", "identity", "身份证"]
+    "地址": ["address", "地址"]
+    "地理位置": ["location", "geo", "gps", "地理位置"]
+    "设备标识": ["device_id", "imei", "mac", "设备标识"]
+    "银行卡": ["bank_card", "card_no", "银行卡"]
+    "订单信息": ["order_id", "order_no", "订单"]
+    "会话标识": ["session", "cookie", "access_token", "auth_token", "refresh_token", "bearer", "authorization", "会话"]
+    "凭据": ["api_key", "apikey", "secret", "password", "credential", "密钥", "私钥", "凭据"]
+  sensitive_action_keywords:
+    network_send: ["requests.post", "requests.put", "requests.request", "http.post", "httpx.post", "aiohttp", "fetch(", "axios.post", "axios.put", "send(", "webhook", "upload", "callback"]
+    log_output: ["logger.", "log_", "log.", "print(", "fmt.printf", "fmt.println"]
+    persistence: ["save", "write", "store", "persist", "db.", "redis", ".set("]
+    input_receive: ["request.", "req.", "header", "headers", "query", "params", "payload", "body", "form", "input", "getenv", "os.getenv"]
+    sql_write: ["insert ", "update ", "delete ", "replace ", "upsert ", "create table", "alter table", "drop table"]
+  resource_risk_patterns:
+    loop: "(?i)^for\\s*\\{\\s*$|^while\\s*\\(?\\s*true\\s*\\)?\\s*[:{]?$|for\\s*\\(\\s*;\\s*;\\s*\\)"
+    goroutine: "(?i)\\bgo\\s+[A-Za-z_][A-Za-z0-9_]*\\(|asyncio\\.create_task\\(|threading\\.thread\\(|executor\\.submit\\(|promise\\.all\\("
+    retry: "(?i)(retry|backoff|attempt|tries|retries)"
+    network: "(?i)(http\\.get\\(|http\\.post\\(|http\\.newrequest\\(|requests\\.(get|post)\\(|fetch\\(|axios\\.(get|post)|client\\.do\\()"
+    timeout_guard: "(?i)(timeout|deadline|context\\.withtimeout|context\\.withdeadline|client\\.timeout|setdefaulttimeout)"
+    backoff_guard: "(?i)(sleep\\(|time\\.sleep\\(|await asyncio\\.sleep\\(|backoff|exponential|jitter)"
+  audit_patterns:
+    sensitive_log: "(?i)(log|logger|print|fmt\\.print).*(password|token|secret|api[_-]?key|authorization|cookie)"
+    silent_exception: "(?i)(except|catch).*?(pass|return\\s+nil|return\\s+none)"
+    high_impact: "(?i)(requests\\.(post|put|delete)\\(|http\\.(post|put|delete)\\(|subprocess\\.|os\\.system\\(|exec\\.command\\(|open\\([^\\n]*['\"]w|sqlite3\\.connect\\(|\\.execute\\(|\\.executemany\\(|write\\(|save\\(|persist)"
+    audit: "(?i)(audit[_-]?log|security[_-]?log|logger\\.(info|warn|error|audit)|logrus|zap\\.|logging\\.(info|warning|error))"

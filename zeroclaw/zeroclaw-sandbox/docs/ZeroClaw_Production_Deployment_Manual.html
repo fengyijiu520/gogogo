@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroClaw 工业级安全分析沙箱 - 生产环境部署手册</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", "SimHei", sans-serif;
+            line-height: 1.6;
+            margin: 2cm;
+            color: #333;
+        }
+        h1 {
+            font-size: 22pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 24pt;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10pt;
+        }
+        h2 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-top: 20pt;
+            margin-bottom: 10pt;
+            color: #2980b9;
+        }
+        h3 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 16pt;
+            margin-bottom: 8pt;
+            color: #34495e;
+        }
+        p {
+            font-size: 11pt;
+            margin-bottom: 8pt;
+        }
+        ul, ol {
+            font-size: 11pt;
+            margin-left: 20pt;
+            margin-bottom: 8pt;
+        }
+        li {
+            margin-bottom: 4pt;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 12pt;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 10pt;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        code {
+            font-family: "Consolas", "Courier New", monospace;
+            background-color: #f1f3f5;
+            padding: 2pt 4pt;
+            border-radius: 3px;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10pt;
+            margin: 12pt 0;
+            font-size: 10.5pt;
+        }
+        .important {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 10pt;
+            margin: 12pt 0;
+            font-size: 10.5pt;
+            font-weight: bold;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #dee2e6;
+            margin: 20pt 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>ZeroClaw 工业级安全分析沙箱 - 生产环境部署手册</h1>
+
+    <h2>1. 前置条件</h2>
+
+    <h3>1.1 硬件要求</h3>
+    <ul>
+        <li>最低配置：4核CPU，8GB内存，100GB SSD</li>
+        <li>推荐配置：8核CPU，16GB内存，500GB SSD</li>
+        <li>专用物理机或隔离的虚拟机，禁止与生产环境共享资源</li>
+    </ul>
+
+    <h3>1.2 软件要求</h3>
+    <ul>
+        <li>操作系统：Ubuntu 22.04 LTS / Debian 12 Bookworm</li>
+        <li>Docker版本：≥25.0.0（推荐最新稳定版）</li>
+        <li>内核版本：≥5.15（支持Seccomp和AppArmor）</li>
+        <li>网络：已配置代理，能够访问GitHub</li>
+    </ul>
+
+    <h3>1.3 安全要求</h3>
+    <ul>
+        <li>宿主机已禁用所有不必要的服务</li>
+        <li>已启用防火墙，仅允许必要的入站连接</li>
+        <li>已禁用root用户直接登录，使用普通用户+sudo</li>
+        <li>已定期更新系统补丁</li>
+    </ul>
+
+    <h2>2. 安装步骤</h2>
+
+    <h3>2.1 安装Docker（国内网络优化版）</h3>
+    <div class="important">
+        重要提示：由于Docker官方源在国内访问不稳定，以下提供两种国内可用的安装方法
+    </div>
+
+    <h4>方法一：使用LinuxMirrors一键安装脚本（推荐）</h4>
+<pre>
+# 一键安装Docker并自动配置国内镜像源
+bash &lt;(curl -sSL https://linuxmirrors.cn/docker.sh)
+
+# 将当前用户添加到docker组
+sudo usermod -aG docker $USER
+
+# 刷新用户组（无需重新登录）
+newgrp docker
+
+# 验证安装
+docker --version
+</pre>
+
+    <h4>方法二：手动安装（使用阿里云镜像源）</h4>
+<pre>
+# 更新系统
+sudo apt-get update && sudo apt-get upgrade -y
+
+# 安装依赖
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+# 添加阿里云Docker GPG密钥
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# 添加阿里云Docker仓库
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 安装Docker
+sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+# 将当前用户添加到docker组
+sudo usermod -aG docker $USER
+
+# 刷新用户组
+newgrp docker
+
+# 验证安装
+docker --version
+</pre>
+
+    <h3>2.2 配置Docker守护进程（含国内镜像加速）</h3>
+<pre>
+# 创建Docker配置目录
+sudo mkdir -p /etc/docker
+
+# 配置用户命名空间隔离、日志驱动和国内镜像加速
+echo '{
+  "userns-remap": "default",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "3"
+  },
+  "registry-mirrors": [
+    "https://docker.xuanyuan.me",
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com"
+  ]
+}' | sudo tee /etc/docker/daemon.json
+
+# 重启Docker服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# 验证镜像加速是否生效
+docker info | grep -A2 Mirrors
+</pre>
+
+    <h3>2.3 部署Seccomp安全策略</h3>
+<pre>
+# 创建Seccomp配置目录
+sudo mkdir -p /etc/docker/seccomp
+
+# 复制Seccomp配置文件
+sudo cp my-seccomp-profile.json /etc/docker/seccomp/
+
+# 设置正确的权限
+sudo chmod 644 /etc/docker/seccomp/my-seccomp-profile.json
+sudo chown root:root /etc/docker/seccomp/my-seccomp-profile.json
+</pre>
+
+    <h3>2.4 安装依赖工具</h3>
+<pre>
+sudo apt-get install -y tcpdump iptables htop
+</pre>
+
+    <h3>2.5 构建沙箱镜像</h3>
+<pre>
+# 克隆或下载部署包到本地
+git clone &lt;部署包地址&gt;
+cd zeroclaw-sandbox
+
+# 构建镜像（确保已配置代理）
+docker build -t zeroclaw-sandbox .
+
+# 验证镜像构建成功
+docker images | grep zeroclaw-sandbox
+</pre>
+
+    <h3>2.6 设置脚本执行权限</h3>
+<pre>
+chmod +x start-sandbox.sh monitor-traffic.sh
+</pre>
+
+    <h2>3. 快速验证</h2>
+
+    <h3>3.1 创建测试脚本</h3>
+<pre>
+mkdir test-skill
+echo '#!/bin/bash' > test-skill/test.sh
+echo 'echo "Hello from test skill"' >> test-skill/test.sh
+echo 'ls -la /' >> test-skill/test.sh
+echo 'ping -c 1 8.8.8.8' >> test-skill/test.sh
+chmod +x test-skill/test.sh
+</pre>
+
+    <h3>3.2 启动网络监控</h3>
+<pre>
+# 在第一个终端执行
+./monitor-traffic.sh
+</pre>
+
+    <h3>3.3 启动沙箱并运行测试</h3>
+<pre>
+# 在第二个终端执行
+./start-sandbox.sh ./test-skill
+
+# 在容器内执行
+cd skill
+./test.sh
+</pre>
+
+    <h3>3.4 验证结果</h3>
+    <ul>
+        <li>测试脚本应该能够正常执行</li>
+        <li>应该能够看到<code>ls -la /</code>的输出</li>
+        <li>ping命令应该能够执行</li>
+        <li>网络监控脚本应该能够捕获到DNS查询和ICMP数据包</li>
+        <li>检查Seccomp日志：<code>sudo journalctl -k | grep seccomp</code>，不应该有任何被拒绝的系统调用</li>
+    </ul>
+
+    <h2>4. 日常使用指南</h2>
+
+    <h3>4.1 分析可疑Skill</h3>
+<pre>
+# 启动网络监控
+./monitor-traffic.sh
+
+# 在另一个终端启动沙箱
+./start-sandbox.sh /path/to/suspicious-skill
+
+# 在容器内进行分析
+cd skill
+zeroclaw analyze ./suspicious-file
+</pre>
+
+    <h3>4.2 查看系统调用日志</h3>
+<pre>
+# 实时查看Seccomp审计日志
+sudo journalctl -kf | grep seccomp
+
+# 查看历史日志
+sudo journalctl -k --since "1 hour ago" | grep seccomp
+</pre>
+
+    <h3>4.3 分析网络流量</h3>
+<pre>
+# 使用Wireshark打开PCAP文件
+wireshark analysis-*.pcap
+
+# 或者使用tcpdump分析
+tcpdump -r analysis-*.pcap -n
+</pre>
+
+    <h2>5. 运维指南</h2>
+
+    <h3>5.1 定期更新</h3>
+<pre>
+# 更新系统
+sudo apt-get update && sudo apt-get upgrade -y
+
+# 更新Docker
+sudo apt-get update && sudo apt-get upgrade docker-ce docker-ce-cli containerd.io
+
+# 重新构建沙箱镜像（每周一次）
+cd zeroclaw-sandbox
+docker build --no-cache -t zeroclaw-sandbox .
+</pre>
+
+    <h3>5.2 日志管理</h3>
+    <ul>
+        <li>容器日志：自动轮转，每个文件100MB，最多保留3个</li>
+        <li>网络流量日志：自动轮转，每个文件100MB，最多保留10个</li>
+        <li>系统调用日志：由systemd-journald管理，默认保留4周</li>
+    </ul>
+
+    <h3>5.3 资源监控</h3>
+<pre>
+# 查看容器资源使用情况
+docker stats
+
+# 查看宿主机资源使用情况
+htop
+
+# 查看磁盘使用情况
+df -h
+</pre>
+
+    <h2>6. 故障排查</h2>
+
+    <h3>6.1 镜像构建失败</h3>
+    <ul>
+        <li>检查代理配置是否正确</li>
+        <li>检查网络连接是否正常</li>
+        <li>尝试使用<code>--no-cache</code>参数重新构建</li>
+        <li>验证Docker镜像加速是否生效</li>
+    </ul>
+
+    <h3>6.2 容器无法启动</h3>
+    <ul>
+        <li>检查Docker服务是否运行：<code>sudo systemctl status docker</code></li>
+        <li>检查Seccomp配置文件路径是否正确</li>
+        <li>检查资源限制是否过高</li>
+        <li>查看Docker守护进程日志：<code>sudo journalctl -u docker -f</code></li>
+    </ul>
+
+    <h3>6.3 网络监控无数据</h3>
+    <ul>
+        <li>检查桥接接口名是否正确</li>
+        <li>检查tcpdump是否有足够的权限</li>
+        <li>检查容器是否连接到正确的网络</li>
+        <li>验证防火墙规则是否允许流量捕获</li>
+    </ul>
+
+    <h2>7. 应急响应预案</h2>
+
+    <h3>7.1 容器逃逸疑似事件</h3>
+    <ol>
+        <li>立即停止所有运行中的沙箱容器：
+<pre>
+docker stop $(docker ps -q --filter name=skill-analysis)
+</pre>
+        </li>
+        <li>隔离宿主机，断开网络连接</li>
+        <li>保存所有日志和抓包文件：
+<pre>
+tar -czf incident-$(date +%Y%m%d-%H%M%S).tar.gz /var/log/docker *.pcap
+</pre>
+        </li>
+        <li>进行内存取证和磁盘镜像</li>
+        <li>重建沙箱环境</li>
+    </ol>
+
+    <h3>7.2 恶意软件爆发</h3>
+    <ol>
+        <li>立即隔离受影响的宿主机</li>
+        <li>通知安全团队</li>
+        <li>收集所有相关证据</li>
+        <li>进行全面的安全评估</li>
+        <li>制定并实施修复方案</li>
+    </ol>
+
+    <h2>8. 安全最佳实践</h2>
+    <ul>
+        <li><strong>一次一用原则</strong>：每次分析都创建一个全新的容器，测试完毕后立即销毁</li>
+        <li><strong>最小权限原则</strong>：仅授予容器必要的权限</li>
+        <li><strong>定期更新原则</strong>：及时更新宿主机、Docker和沙箱镜像</li>
+        <li><strong>日志审计原则</strong>：保留所有操作日志和系统调用日志</li>
+        <li><strong>隔离原则</strong>：将沙箱环境与生产环境完全隔离</li>
+    </ul>
+
+    <h2>9. 联系方式</h2>
+    <p>如果在部署或使用过程中遇到任何问题，请联系安全团队。</p>
+
+    <hr>
+
+    <h2>🚀 一键生成项目结构</h2>
+    <p>你可以将以下脚本保存为<code>create-project.sh</code>，执行后会自动创建完整的项目目录和所有文件：</p>
+
+<pre>
+#!/bin/bash
+set -e
+
+# 创建项目目录
+mkdir -p zeroclaw-sandbox/docs
+cd zeroclaw-sandbox
+
+# 创建Dockerfile
+cat > Dockerfile << 'EOF'
+# 请在此处添加完整的Dockerfile内容
+EOF
+
+# 创建my-seccomp-profile.json
+cat > my-seccomp-profile.json << 'EOF'
+# 请在此处添加完整的Seccomp配置文件内容
+EOF
+
+# 创建start-sandbox.sh
+cat > start-sandbox.sh << 'EOF'
+# 请在此处添加完整的启动脚本内容
+EOF
+
+# 创建monitor-traffic.sh
+cat > monitor-traffic.sh << 'EOF'
+# 请在此处添加完整的网络监控脚本内容
+EOF
+
+# 创建部署手册
+cat > docs/PRODUCTION_DEPLOYMENT.md << 'EOF'
+# 请在此处复制上面完整的部署手册内容
+EOF
+
+# 设置执行权限
+chmod +x start-sandbox.sh monitor-traffic.sh
+
+echo "✅ ZeroClaw沙箱项目已成功创建！"
+echo "📂 项目目录：$(pwd)"
+echo "📖 部署手册：$(pwd)/docs/PRODUCTION_DEPLOYMENT.md"
+echo ""
+echo "下一步："
+echo "1. 阅读部署手册：cat docs/PRODUCTION_DEPLOYMENT.md"
+echo "2. 按照手册完成Docker安装和配置"
+echo "3. 构建镜像：docker build -t zeroclaw-sandbox ."
+echo "4. 运行测试：./start-sandbox.sh ./test-skill"
+</pre>
+
+</body>
+</html>

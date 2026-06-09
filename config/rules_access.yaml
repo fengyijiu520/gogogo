@@ -1,0 +1,3599 @@
+scene: 场景二
+scope: 技能入库前安全审查规则
+source_workbook: 场景二-技能入库前安全审查表.xlsx
+decision_policy:
+  nonpersonal_high: block
+  nonpersonal_medium: require_review
+  nonpersonal_low: record_and_pass
+  notes:
+  - 规则以场景二最终评估项为准。
+  - 仅对应 skills 入库前安全审查。
+  - 统一按零信任检查自研与第三方技能。
+  - 已剔除非 skills 入库前审查范围的条目。
+rule_groups:
+- id: S2-G01
+  category: 恶意行为与代码安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-01-001
+    item: 检查是否调用系统破坏命令
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否调用系统破坏命令”是否在技能实现、配置或说明文档中真实存在，重点核查 启动脚本/主流程代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 启动脚本/主流程代码，确认是否存在与“检查是否调用系统破坏命令”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可删除系统文件、破坏运行环境”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 删除破坏性命令，仅保留白名单安全操作。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Tool Security & Least Privilege
+    - MITRE CWE-78 OS Command Injection
+    - 链接：https://cwe.mitre.org/data/definitions/78.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: &id001
+      - '**/*.py'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - '**/*.go'
+      - '**/*.java'
+      - '**/*.kt'
+      - '**/*.kts'
+      - '**/*.scala'
+      - '**/*.groovy'
+      - '**/*.rb'
+      - '**/*.php'
+      - '**/*.cs'
+      - '**/*.vb'
+      - '**/*.rs'
+      - '**/*.c'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.cxx'
+      - '**/*.h'
+      - '**/*.hpp'
+      - '**/*.swift'
+      - '**/*.m'
+      - '**/*.mm'
+      - '**/*.lua'
+      - '**/*.pl'
+      - '**/*.pm'
+      - '**/*.r'
+      - '**/*.dart'
+      - '**/*.sh'
+      - '**/*.bash'
+      - '**/*.zsh'
+      - '**/*.ps1'
+      - '**/*.bat'
+      - '**/*.cmd'
+      - '**/*.json'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.xml'
+      - '**/*.toml'
+      - '**/*.ini'
+      - '**/*.conf'
+      - '**/*.properties'
+      - '**/*.gradle'
+      - '**/*.sbt'
+      - '**/*.sql'
+      - '**/*.proto'
+      - '**/*.env*'
+      - '**/Dockerfile'
+      - '**/Makefile'
+      patterns:
+      - rm\s+-rf\s+/
+      - dd\s+if=/dev/zero
+      - mkfs\.
+      - shutdown\b
+      - reboot\b
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否调用系统破坏命令
+  - id: S2-01-002
+    item: 检查是否建立反弹 Shell 远控连接
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否建立反弹 Shell 远控连接”是否在技能实现、配置或说明文档中真实存在，重点核查 网络通信/命令执行代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 网络通信/命令执行代码，确认是否存在与“检查是否建立反弹 Shell 远控连接”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可被远程控制，获取主机权限”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除反弹连接逻辑，禁止主动远控。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Tool Security & Least Privilege
+    - MITRE CWE-78 OS Command Injection
+    - 链接：https://cwe.mitre.org/data/definitions/78.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - nc\s+-e\s+/bin/sh
+      - /dev/tcp/.+sh
+      - bash\s+-i
+      - socat.+exec
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否建立反弹 Shell 远控连接
+  - id: S2-01-003
+    item: 检查是否包含挖矿进程拉起逻辑
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否包含挖矿进程拉起逻辑”是否在技能实现、配置或说明文档中真实存在，重点核查 后台任务/加密逻辑代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 后台任务/加密逻辑代码，确认是否存在与“检查是否包含挖矿进程拉起逻辑”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“占用系统资源、加密数据勒索”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除挖矿/勒索逻辑，禁止数据加密。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Monitoring and Logging
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Measure；Manage
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - stratum\+tcp://
+      - xmrig
+      - mining
+      - monero
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否包含挖矿进程拉起逻辑
+  - id: S2-01-004
+    item: 检查是否包含勒索式文件加密逻辑
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否包含勒索式文件加密逻辑”是否在技能实现、配置或说明文档中真实存在，重点核查 后台任务/加密逻辑代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 后台任务/加密逻辑代码，确认是否存在与“检查是否包含勒索式文件加密逻辑”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“占用系统资源、加密数据勒索”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除挖矿/勒索逻辑，禁止数据加密。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Monitoring and Logging
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Measure；Manage
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - EncryptFile
+      - openssl\s+enc
+      - gpg\s+-c
+      - ransom
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否包含勒索式文件加密逻辑
+  - id: S2-01-005
+    item: 检查是否存在隐藏口令触发高危能力
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否存在隐藏口令触发高危能力”是否在技能实现、配置或说明文档中真实存在，重点核查 条件分支/鉴权逻辑代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 条件分支/鉴权逻辑代码，确认是否存在与“检查是否存在隐藏口令触发高危能力”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“未声明隐藏能力，可越权执行高危操作”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 删除隐藏触发逻辑，所有能力显式声明。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - MITRE CWE-912 Hidden Functionality
+    - 链接：https://cwe.mitre.org/data/definitions/912.html
+    - 关键上下文：Description；Extended Description；Detection Methods
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Human-in-the-Loop Controls
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - magic[_-]?token
+      - debug[_-]?secret
+      - backdoor
+      - if.+password.+exec
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否存在隐藏口令触发高危能力
+  - id: S2-01-006
+    item: 检查是否通过时间条件触发高危操作
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否通过时间条件触发高危操作”是否在技能实现、配置或说明文档中真实存在，重点核查 环境判断/延时执行代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 环境判断/延时执行代码，确认是否存在与“检查是否通过时间条件触发高危操作”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“特定条件自动执行未声明高危操作”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除条件触发高危逻辑，显式声明能力。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - MITRE CWE-912 Hidden Functionality
+    - 链接：https://cwe.mitre.org/data/definitions/912.html
+    - 关键上下文：Description；Extended Description；Detection Methods
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Human-in-the-Loop Controls
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - time\.(sleep|after)
+      - cron
+      - '@scheduled'
+      - if.+date
+      - if.+time
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否通过时间条件触发高危操作
+  - id: S2-01-007
+    item: 检查是否通过环境变量触发高危操作
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否通过环境变量触发高危操作”是否在技能实现、配置或说明文档中真实存在，重点核查 环境判断/延时执行代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 环境判断/延时执行代码，确认是否存在与“检查是否通过环境变量触发高危操作”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“特定条件自动执行未声明高危操作”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除条件触发高危逻辑，显式声明能力。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - MITRE CWE-912 Hidden Functionality
+    - 链接：https://cwe.mitre.org/data/definitions/912.html
+    - 关键上下文：Description；Extended Description；Detection Methods
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Human-in-the-Loop Controls
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - getenv\(
+      - os\.environ
+      - process\.env
+      - ENV\[
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否通过环境变量触发高危操作
+  - id: S2-01-008
+    item: 检查是否存在下载后直接执行链路
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否存在下载后直接执行链路”是否在技能实现、配置或说明文档中真实存在，重点核查 更新/下载/安装脚本。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 更新/下载/安装脚本，确认是否存在与“检查是否存在下载后直接执行链路”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“绕过入库审查，执行远程未知代码”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 禁止下载执行，依赖通过供应链流程引入。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Tool Security & Least Privilege；Human-in-the-Loop Controls
+    - MITRE CWE-78 OS Command Injection
+    - 链接：https://cwe.mitre.org/data/definitions/78.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - curl.+\|.+sh
+      - wget.+\|.+sh
+      - download.+exec
+      - Invoke-WebRequest.+iex
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否存在下载后直接执行链路
+  - id: S2-01-009
+    item: 检查是否在运行时动态安装依赖
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否在运行时动态安装依赖”是否在技能实现、配置或说明文档中真实存在，重点核查 运行脚本、启动逻辑。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 运行脚本、启动逻辑，确认是否存在与“检查是否在运行时动态安装依赖”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“运行时装包，引入恶意/漏洞依赖”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 统一在构建阶段安装，运行时禁止安装。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Tool Security & Least Privilege；Human-in-the-Loop Controls
+    - MITRE CWE-78 OS Command Injection
+    - 链接：https://cwe.mitre.org/data/definitions/78.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - pip\s+install
+      - npm\s+install
+      - yarn\s+add
+      - pnpm\s+add
+      - go\s+get
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否在运行时动态安装依赖
+  - id: S2-01-010
+    item: 检查是否暴露未鉴权调试接口
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否暴露未鉴权调试接口”是否在技能实现、配置或说明文档中真实存在，重点核查 路由、配置。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 路由、配置，确认是否存在与“检查是否暴露未鉴权调试接口”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“生产环境残留调试入口”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除或仅测试环境开启。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Key Risks；Tool Security & Least Privilege；Human-in-the-Loop Controls
+    - MITRE CWE-78 OS Command Injection
+    - 链接：https://cwe.mitre.org/data/definitions/78.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - /debug
+      - debug\s*=\s*true
+      - test_backdoor
+      - admin_debug
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否暴露未鉴权调试接口
+- id: S2-G02
+  category: 数据安全与隐私保护类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-02-001
+    item: 检查是否将凭据或密钥发送到未声明外部目标
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测技能是否会把凭据、密钥或令牌发送到未声明外部目标，重点核查网络请求、外发参数和外联白名单。
+    detection_method: 静态分析+数据流审查+人工复核。原因：该问题需要同时确认敏感字段来源、出站链路和目标地址，应通过静态扫描和链路复核判断风险。
+    verification_steps:
+    - 1. 人工检查网络请求、Webhook、HTTP 客户端和数据出站逻辑，确认是否会发送凭据、密钥或令牌。
+    - 2. 核对外联目标是否出现在技能声明、权限说明和白名单配置中。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认系统是否会把敏感字段直接发往未声明目标。
+    fix_suggestion: 限制外发目标并默认拦截凭据类字段，敏感字段出站前强制脱敏或拒绝。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Common Examples；Prevention and Mitigation
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.1 Centralize and Standardize；2.7 Rotation；2.8 Revocation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - Authorization
+      - Bearer\s+
+      - api[_-]?key
+      - secret
+      - token
+      pass_if: no_match
+      reason: 发现凭据外发危险信号且缺少外联白名单、脱敏或阻断控制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - allowlist
+      - whitelist
+      - trusted_host
+      - approved_domain
+      - redact
+      - mask
+      - drop secret
+      - deny outbound
+      - egress policy
+      - webhook allowlist
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - Authorization
+      - Bearer\s+
+      - api[_-]?key
+      - secret
+      - token
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否将凭据或密钥发送到未声明外部目标
+  - id: S2-02-002
+    item: 检查是否将用户隐私数据发送到未声明外部目标
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测技能是否会把用户隐私数据发送到未声明外部目标，重点核查数据字段、网络出站链路和外联白名单。
+    detection_method: 静态分析+数据流审查+人工复核。原因：需要同时确认隐私字段来源、出站路径和目标声明情况，应通过静态扫描和链路复核判断风险。
+    verification_steps:
+    - 1. 人工检查数据采集、网络出站和第三方接口调用逻辑，识别是否会发送用户隐私字段。
+    - 2. 核对发送目标是否在技能说明、权限清单和白名单中被明确声明。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认隐私字段是否会被直接发送到未声明外部目标。
+    fix_suggestion: 将隐私数据出站改为最小化字段集，并增加授权、脱敏和白名单控制。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Common Examples；Prevention and Mitigation
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Minimize Data Collection；Support Deletion；Protect Data in Transit
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - email
+      - phone
+      - id[_-]?card
+      - address
+      - user.*profile
+      pass_if: no_match
+      reason: 发现隐私外发危险信号且缺少白名单、脱敏或最小化控制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - allowlist
+      - whitelist
+      - trusted_host
+      - approved_domain
+      - redact
+      - mask
+      - minimize
+      - field filter
+      - deny outbound
+      - egress policy
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - email
+      - phone
+      - id[_-]?card
+      - address
+      - user.*profile
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否将用户隐私数据发送到未声明外部目标
+  - id: S2-02-003
+    item: 检查是否通过隐蔽通道外发敏感数据
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否通过隐蔽通道外发敏感数据”是否在技能实现、配置或说明文档中真实存在，重点核查 DNS/Webhook/Socket通信代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 DNS/Webhook/Socket通信代码，确认是否存在与“检查是否通过隐蔽通道外发敏感数据”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“使用隐蔽服务外发敏感数据”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 禁止使用隐蔽通信服务，启用出口审计。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Example Attack Scenarios；Prevention and Mitigation
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Monitoring and Logging
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - pastebin
+      - ngrok
+      - torproject
+      - duckdns
+      - websocket
+      - irc://
+      - dns.*txt
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否通过隐蔽通道外发敏感数据
+  - id: S2-02-004
+    item: 检查是否在源码中硬编码真实 API 密钥
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测源码中是否硬编码真实 API 密钥，重点核查常量定义、默认配置和样例代码。
+    detection_method: 静态分析+人工复核。原因：硬编码密钥主要存在于源码和配置文本中，通过文本扫描和上下文确认最有效。
+    verification_steps:
+    - 1. 人工检查源码常量、默认配置和示例代码，确认是否直接包含真实 API 密钥。
+    - 2. 用关键字和密钥格式规则搜索仓库内容，定位疑似真实密钥。
+    - 3. 对疑似密钥进行上下文复核，确认是否为真实可用凭据而不是占位符。
+    fix_suggestion: 移除源码中的真实密钥，改用密钥托管或环境注入。
+    source_context:
+    - MITRE CWE-798 Use of Hard-coded Credentials
+    - 链接：https://cwe.mitre.org/data/definitions/798.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.4 Automate Secrets Management；2.7 Rotation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - sk-[A-Za-z0-9]{20,}
+      - AKIA[0-9A-Z]{16}
+      - AIza[0-9A-Za-z\-_]{20,}
+      - api[_-]?key\s*[:=]\s*["\'][^"\']{12,}
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否在源码中硬编码真实 API 密钥
+  - id: S2-02-005
+    item: 检查是否在配置文件中硬编码真实访问令牌
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测配置文件中是否硬编码真实访问令牌，重点核查配置模板、环境样例和默认参数文件。
+    detection_method: 静态分析+人工复核。原因：配置文件中的硬编码凭据是文本层问题，最适合通过静态检查与上下文确认完成。
+    verification_steps:
+    - 1. 人工检查配置文件、环境样例和默认参数，确认是否出现真实访问令牌。
+    - 2. 用令牌格式和敏感关键字搜索配置目录，定位疑似真实凭据。
+    - 3. 对疑似令牌做上下文复核，确认其是否可用于真实访问。
+    fix_suggestion: 移除配置文件中的真实令牌，改用运行时安全注入和权限收敛。
+    source_context:
+    - MITRE CWE-798 Use of Hard-coded Credentials
+    - 链接：https://cwe.mitre.org/data/definitions/798.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.1 Centralize and Standardize；2.4 Automate Secrets Management
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - token\s*[:=]\s*["\'][^"\']{12,}
+      - Bearer\s+[A-Za-z0-9\-\._]{12,}
+      - ghp_[A-Za-z0-9]{20,}
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否在配置文件中硬编码真实访问令牌
+  - id: S2-02-006
+    item: 检查是否以明文缓存访问令牌
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测系统是否以明文形式缓存访问令牌，重点核查缓存层、会话存储和临时文件。
+    detection_method: 静态分析+存储路径复核+隔离验证。原因：需要同时确认缓存位置、保存格式和可读取性。
+    verification_steps:
+    - 1. 检查缓存层、会话存储和本地临时文件中是否直接保存访问令牌明文。
+    - 2. 复核令牌缓存是否设置最短 TTL、加密保护和按用户隔离。
+    - 3. 通过静态扫描与配置复核确认令牌是否可被其他流程或任务直接读取。
+    fix_suggestion: 改为加密缓存短期令牌，并设置最短可用 TTL。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.3 Access Control；2.5 Audit；2.7 Rotation
+    - OWASP Cryptographic Storage Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
+    - 关键上下文：Architectural Design；Minimise the Storage of Sensitive Information
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - redis\.set\(.+token
+      - localStorage\.setItem\(.+token
+      - cache\[.+token
+      - writeFile\(.+token
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否以明文缓存访问令牌
+  - id: S2-02-007
+    item: 检查是否以明文缓存长期凭据
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测系统是否以明文形式缓存长期凭据，重点核查本地存储、缓存层和会话持久化逻辑。
+    detection_method: 静态分析+存储路径复核+隔离验证。原因：长期凭据风险取决于明文存储位置与可读取性，需要结合实现和运行结果判断。
+    verification_steps:
+    - 1. 检查长期凭据是否被直接保存到本地文件、缓存或数据库中。
+    - 2. 复核存储位置是否经过加密、隔离和访问控制。
+    - 3. 通过静态扫描与配置复核确认其他任务或进程是否可直接读取该长期凭据。
+    fix_suggestion: 避免缓存长期凭据，改用一次性授权或按需换取短期凭据。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.3 Access Control；2.4 Automate Secrets Management；2.8 Revocation
+    - OWASP Cryptographic Storage Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
+    - 关键上下文：Architectural Design；Minimise the Storage of Sensitive Information
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - redis\.set\(.+token
+      - localStorage\.setItem\(.+token
+      - cache\[.+token
+      - writeFile\(.+token
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否以明文缓存长期凭据
+  - id: S2-02-008
+    item: 检查是否通过全局变量共享访问令牌
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测系统是否通过全局变量共享访问令牌，重点核查全局状态、单例对象和进程级上下文。
+    detection_method: 静态检查+状态共享复核+隔离验证。原因：该问题不仅是代码模式，还需要确认是否真的发生跨任务共享。
+    verification_steps:
+    - 1. 检查代码中是否把访问令牌保存到全局变量、单例或共享上下文。
+    - 2. 复核不同任务或不同用户是否会复用同一令牌对象。
+    - 3. 通过静态扫描与配置复核确认新任务能否读取前一任务遗留的令牌值。
+    fix_suggestion: 按用户或任务命名空间隔离令牌，禁止通过全局变量共享。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.3 Access Control；2.6 Dynamic Secrets
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Prevention and Mitigation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - global.+token
+      - singleton.+token
+      - process\..+token
+      - static.+credential
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否通过全局变量共享访问令牌
+  - id: S2-02-009
+    item: 检查是否通过单例或进程级缓存共享敏感凭据
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测系统是否通过单例或进程级缓存共享敏感凭据，重点核查单例、进程级缓存和共享上下文。
+    detection_method: 静态检查+状态共享复核+隔离验证。原因：需要同时确认代码模式和运行时的跨任务复用事实。
+    verification_steps:
+    - 1. 检查敏感凭据是否被保存到单例、进程级缓存或全局上下文。
+    - 2. 复核这些共享对象是否缺少用户、任务或租户隔离。
+    - 3. 通过静态扫描与配置复核确认新任务能否直接复用旧任务的敏感凭据。
+    fix_suggestion: 移除进程级共享敏感缓存，改为会话级隔离存储。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.3 Access Control；2.6 Dynamic Secrets
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Prevention and Mitigation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - global.+token
+      - singleton.+token
+      - process\..+token
+      - static.+credential
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否通过单例或进程级缓存共享敏感凭据
+  - id: S2-02-010
+    item: 检查是否在错误输出中泄露密钥
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在错误输出中泄露密钥”是否在技能实现、配置或说明文档中真实存在，重点核查 错误处理/日志/响应构造代码。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 错误处理/日志/响应构造代码，确认是否存在与“检查是否在错误输出中泄露密钥”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“输出密钥/系统提示词/内部路径等敏感信息”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 统一错误模板，日志脱敏，过滤敏感输出。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Error Handling Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+    - 关键上下文：Objective；Context；Exception Handling
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Prevention and Mitigation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - logger\..+token
+      - print\(.+secret
+      - console\.log\(.+api[_-]?key
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在错误输出中泄露密钥
+  - id: S2-02-011
+    item: 检查是否在错误输出中泄露系统提示词
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在错误输出中泄露系统提示词”是否在技能实现、配置或说明文档中真实存在，重点核查 错误处理/日志/响应构造代码。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 错误处理/日志/响应构造代码，确认是否存在与“检查是否在错误输出中泄露系统提示词”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“输出密钥/系统提示词/内部路径等敏感信息”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 统一错误模板，日志脱敏，过滤敏感输出。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM01 Prompt Injection
+    - 链接：https://genai.owasp.org/llm-top-10/llm01-prompt-injection/
+    - 关键上下文：Description；Example Attack Scenarios；Prevention and Mitigation
+    - OWASP Error Handling Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+    - 关键上下文：Objective；Exception Handling
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - logger\..+system[_-]?prompt
+      - print\(.+system[_-]?prompt
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在错误输出中泄露系统提示词
+  - id: S2-02-012
+    item: 检查是否在错误输出中泄露堆栈信息
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在错误输出中泄露堆栈信息”是否在技能实现、配置或说明文档中真实存在，重点核查 异常输出、日志。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 异常输出、日志，确认是否存在与“检查是否在错误输出中泄露堆栈信息”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“暴露目录结构、框架版本，辅助攻击”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 统一友好错误，不输出内部细节。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Error Handling Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+    - 关键上下文：Objective；Context；Exception Handling
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - Traceback
+      - stack trace
+      - print_exc\(
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在错误输出中泄露堆栈信息
+  - id: S2-02-013
+    item: 检查是否在错误输出中泄露内部路径
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在错误输出中泄露内部路径”是否在技能实现、配置或说明文档中真实存在，重点核查 异常输出、日志。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 异常输出、日志，确认是否存在与“检查是否在错误输出中泄露内部路径”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“暴露目录结构、框架版本，辅助攻击”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 统一友好错误，不输出内部细节。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Sensitive Information Disclosure；Excessive Agency
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Map；Measure；Manage
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - /workspace/
+      - /app/
+      - C:\\
+      - File ".+"
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在错误输出中泄露内部路径
+  - id: S2-02-014
+    item: 检查是否收集超出业务必要范围的身份信息
+    stage: 要件阶段/设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否收集超出业务必要范围的身份信息，重点核查输入字段、采集表单、接口参数和存储字段。
+    detection_method: 静态分析+字段范围复核。原因：该问题需要先确认技能目标，再核对实际采集字段是否超范围。
+    verification_steps:
+    - 1. 盘点技能实际收集的身份信息字段。
+    - 2. 将字段列表与技能目标和业务必要范围逐项比对。
+    - 3. 复核超范围字段是否被写入日志、缓存、数据库或外发链路。
+    fix_suggestion: 只收集当前功能必需的身份字段，并提供最小化说明。
+    source_context:
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Minimize Data Collection；Data Retention；Delete Unneeded Data
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Map；Measure
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - id[_-]?card
+      - passport
+      - birth(day)?
+      - real[_-]?name
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否收集超出业务必要范围的身份信息
+  - id: S2-02-015
+    item: 检查是否收集超出业务必要范围的行为数据
+    stage: 要件阶段/设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否收集超出业务必要范围的行为数据，重点核查埋点、日志采集、行为记录和上传字段。
+    detection_method: 静态分析+字段范围复核。原因：需要把实际采集行为与业务必要性逐项比对，才能判断是否超范围。
+    verification_steps:
+    - 1. 盘点技能收集的行为数据字段和事件。
+    - 2. 将这些字段与技能功能目标逐项比对，确认是否超出必要范围。
+    - 3. 复核超范围行为数据是否会被长期保存、共享或外发。
+    fix_suggestion: 只保留完成业务所需的最小行为数据，默认关闭额外采集。
+    source_context:
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Minimize Data Collection；Minimize Exposure；Delete Unneeded Data
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Map；Measure
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - clickstream
+      - heatmap
+      - behavior[_-]?log
+      - track\(
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否收集超出业务必要范围的行为数据
+  - id: S2-02-016
+    item: 检查是否缺少个人数据删除机制
+    stage: 要件阶段/设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否提供个人数据删除机制，重点核查删除入口、存储层实现和删除后的残留处理。
+    detection_method: 静态分析+流程复核+隔离验证。原因：需要同时确认删除入口存在、删除链路完整以及执行结果有效。
+    verification_steps:
+    - 1. 检查是否提供明确的数据删除入口或删除流程。
+    - 2. 复核删除请求是否能落实到缓存、数据库、日志和导出副本。
+    - 3. 通过静态扫描与配置复核确认删除后是否仍残留可识别个人数据。
+    fix_suggestion: 补充数据删除入口和执行链路，确保删除请求可落实到存储层。
+    source_context:
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Support Deletion；Delete Unneeded Data；Data Retention
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    detection:
+      type: require_pattern
+      include_globs: &id002
+      - '**/*.py'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - '**/*.go'
+      - '**/*.java'
+      - '**/*.kt'
+      - '**/*.kts'
+      - '**/*.scala'
+      - '**/*.groovy'
+      - '**/*.rb'
+      - '**/*.php'
+      - '**/*.cs'
+      - '**/*.vb'
+      - '**/*.rs'
+      - '**/*.c'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.cxx'
+      - '**/*.h'
+      - '**/*.hpp'
+      - '**/*.swift'
+      - '**/*.m'
+      - '**/*.mm'
+      - '**/*.lua'
+      - '**/*.pl'
+      - '**/*.pm'
+      - '**/*.r'
+      - '**/*.dart'
+      - '**/*.sh'
+      - '**/*.bash'
+      - '**/*.zsh'
+      - '**/*.ps1'
+      - '**/*.bat'
+      - '**/*.cmd'
+      - '**/*.json'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.xml'
+      - '**/*.toml'
+      - '**/*.ini'
+      - '**/*.conf'
+      - '**/*.properties'
+      - '**/*.gradle'
+      - '**/*.sbt'
+      - '**/*.sql'
+      - '**/*.proto'
+      - '**/*.env*'
+      - '**/Dockerfile'
+      - '**/Makefile'
+      - '**/*.md'
+      - SKILL.md
+      - README*
+      - docs/**/*.md
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      patterns:
+      - delete
+      - erase
+      - remove[_-]?user[_-]?data
+      - forget
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少个人数据删除机制
+  - id: S2-02-017
+    item: 检查是否缺少敏感数据脱敏机制
+    stage: 要件阶段/设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否为敏感数据提供脱敏机制，重点核查日志、缓存、导出、展示和外发路径。
+    detection_method: 静态分析+数据流复核。原因：脱敏问题取决于数据流转路径和输出节点，需要结合静态链路与控制逻辑判断。
+    verification_steps:
+    - 1. 盘点敏感数据在日志、缓存、导出和外发链路中的流转路径。
+    - 2. 检查这些路径是否配置脱敏规则、掩码规则或字段裁剪。
+    - 3. 通过静态扫描与配置复核确认敏感字段是否会以明文出现在输出结果中。
+    fix_suggestion: 为日志、缓存、导出和外发链路补充统一脱敏规则。
+    source_context:
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Minimize Exposure；Protect Data in Transit；Protect Data at Rest
+    - OWASP Logging Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+    - 关键上下文：Data to Exclude；Verification
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - mask
+      - redact
+      - desensiti
+      - anonymi
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少敏感数据脱敏机制
+  - id: S2-02-018
+    item: 检查是否缺少数据保留期限控制
+    stage: 要件阶段/设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否为敏感数据设置明确保留期限控制，重点核查存储策略、过期规则和清理流程。
+    detection_method: 静态分析+存储策略复核+隔离验证。原因：需要同时确认策略存在、范围完整以及清理结果有效。
+    verification_steps:
+    - 1. 检查数据存储配置中是否存在保留期限和过期清理规则。
+    - 2. 复核不同存储介质是否都被纳入清理范围。
+    - 3. 通过静态扫描与配置复核确认过期数据是否会按规则被自动清理。
+    fix_suggestion: 为敏感数据设置明确保留期限并自动清理过期数据。
+    source_context:
+    - OWASP User Privacy Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+    - 关键上下文：Data Retention；Delete Unneeded Data
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - ttl
+      - expire
+      - retention
+      - delete_after
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少数据保留期限控制
+  - id: S2-02-019
+    item: 检查是否缺少非人类身份凭据到期轮换机制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否为非人类身份凭据设置到期与轮换机制，重点核查凭据 TTL、轮换配置和生效路径。
+    detection_method: 静态分析+凭据策略复核+隔离验证。原因：需要同时确认配置存在、轮换路径可执行以及旧凭据能失效。
+    verification_steps:
+    - 1. 检查非人类身份凭据是否配置 TTL、到期时间或轮换周期。
+    - 2. 复核轮换触发方式、失败处理和旧凭据失效策略。
+    - 3. 通过静态扫描与配置复核确认到期后旧凭据是否被拒绝，新凭据是否可替换生效。
+    fix_suggestion: 为非人类身份凭据设置固定轮换周期和过期失效策略。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.6 Dynamic Secrets；2.7 Rotation；2.8 Revocation
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Measure；Manage
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - rotation
+      - ttl
+      - expires_at
+      - rotate[_-]?token
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少非人类身份凭据到期轮换机制
+  - id: S2-02-020
+    item: 检查是否缺少非人类身份凭据吊销机制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否提供非人类身份凭据吊销机制，重点核查吊销入口、失效传播和紧急阻断能力。
+    detection_method: 静态分析+凭据策略复核+隔离验证。原因：吊销风险取决于入口存在性和失效传播完整性，需要实际验证。
+    verification_steps:
+    - 1. 检查凭据管理中是否存在吊销或失效入口。
+    - 2. 复核吊销后旧凭据在缓存、会话和调用链中的失效传播是否完整。
+    - 3. 通过静态扫描与配置复核确认被吊销凭据是否无法继续访问敏感能力。
+    fix_suggestion: 补充凭据吊销和紧急失效流程，支持泄露后快速阻断。
+    source_context:
+    - OWASP Secrets Management Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+    - 关键上下文：2.3 Access Control；2.8 Revocation
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Measure；Manage
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - revoke
+      - revocation
+      - invalidate
+      - disable[_-]?token
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少非人类身份凭据吊销机制
+  - id: S2-02-021
+    item: 检查是否缺少长期记忆按用户或任务隔离机制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测长期记忆是否按用户或任务隔离，重点核查记忆存储键、租户边界和读取条件。
+    detection_method: 静态分析+存储结构复核+隔离验证。原因：需要同时确认存储隔离设计和读取边界是否真实成立。
+    verification_steps:
+    - 1. 检查长期记忆或向量库存储结构，确认是否包含用户或任务隔离键。
+    - 2. 复核读取逻辑是否可能跨用户、跨任务命中记忆内容。
+    - 3. 通过静态扫描与配置复核确认一个任务写入的记忆是否会被另一个任务直接读取。
+    fix_suggestion: 将长期记忆按用户、任务或租户隔离存储，阻止串写串读。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM06 Sensitive Information Disclosure
+    - 链接：https://genai.owasp.org/llm-top-10/llm06-sensitive-information-disclosure/
+    - 关键上下文：Description；Example Attack Scenarios；Prevention and Mitigation
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Memory Safety；Multi-Agent Environment；Least Privilege
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - user[_-]?id
+      - tenant[_-]?id
+      - task[_-]?id
+      - namespace
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少长期记忆按用户或任务隔离机制
+  - id: S2-02-022
+    item: 检查是否缺少长期记忆污染清理机制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测长期记忆是否提供污染清理机制，重点核查来源标记、审核流程和清理入口。
+    detection_method: 静态分析+记忆治理复核+隔离验证。原因：污染问题取决于来源标记、审核和清理机制是否完整。
+    verification_steps:
+    - 1. 检查长期记忆是否对写入来源、可信度和审核状态进行标记。
+    - 2. 复核是否存在污染内容识别、清理或回滚流程。
+    - 3. 通过静态扫描与配置复核确认可疑记忆写入后是否能被识别并移除。
+    fix_suggestion: 增加记忆来源标记、审核和清理流程，阻断污染内容长期驻留。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM01 Prompt Injection
+    - 链接：https://genai.owasp.org/llm-top-10/llm01-prompt-injection/
+    - 关键上下文：Description；Indirect Prompt Injection；Prevention and Mitigation
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Memory Safety；Plan-then-Execute；Monitoring and Logging
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - clean
+      - purge
+      - memory[_-]?reset
+      - quarantine
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少长期记忆污染清理机制
+- id: S2-G03
+  category: 合规与审计类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-03-001
+    item: 检查是否存在未在文档中披露的高危能力
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否存在未在文档中披露的高危能力”是否在技能实现、配置或说明文档中真实存在，重点核查 SKILL.md/README.md、源码能力清单。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 SKILL.md/README.md、源码能力清单，确认是否存在与“检查是否存在未在文档中披露的高危能力”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“声明未提及外联/执行/文件读写等高风险能力”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 补全声明文档，同步实际能力与权限。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: code_vs_docs
+      include_globs: *id001
+      code_include_globs: *id001
+      code_patterns:
+      - os\.system
+      - subprocess
+      - fetch\(
+      - axios
+      - open\(
+      - requests\.
+      - httpx\.
+      - socket
+      doc_globs: &id003
+      - '**/*.md'
+      - SKILL.md
+      - README*
+      - docs/**/*.md
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      doc_include_globs: *id003
+      doc_patterns:
+      - 执行
+      - 命令
+      - 外联
+      - 网络
+      - 文件
+      - 读写
+      - 数据处理
+      pass_if: no_code_match_or_doc_match
+      reason: 发现高风险能力实现时，文档中必须有对应声明证据
+    pass_condition: no_code_match_or_doc_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否存在未在文档中披露的高危能力
+  - id: S2-03-002
+    item: 检查是否完整声明文件、网络、执行与数据处理能力
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否完整声明文件、网络、执行与数据处理能力”是否在技能实现、配置或说明文档中真实存在，重点核查 声明文档、权限说明。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 声明文档、权限说明，确认是否存在与“检查是否完整声明文件、网络、执行与数据处理能力”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“能力声明缺失、不完整，用户无法感知风险”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 补全权限、网络、文件、数据处理声明。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: require_pattern
+      include_globs: *id003
+      patterns:
+      - 文件
+      - 网络
+      - 执行
+      - 数据
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否完整声明文件、网络、执行与数据处理能力
+  - id: S2-03-003
+    item: 检查是否对不可逆高影响操作缺少显式确认
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否对不可逆高影响操作缺少显式确认”是否在技能实现、配置或说明文档中真实存在，重点核查 删除/支付/发信等高影响操作代码。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 删除/支付/发信等高影响操作代码，确认是否存在与“检查是否对不可逆高影响操作缺少显式确认”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“高危操作无预览/确认，误操作不可逆”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加预览、明确确认、取消/超时回滚。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - confirm
+      - approval
+      - Are you sure
+      - user_confirm
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否对不可逆高影响操作缺少显式确认
+  - id: S2-03-004
+    item: 检查是否对高影响操作缺少回滚或取消能力
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否对高影响操作缺少回滚或取消能力”是否在技能实现、配置或说明文档中真实存在，重点核查 高危操作逻辑。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 高危操作逻辑，确认是否存在与“检查是否对高影响操作缺少回滚或取消能力”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“执行后无法撤销，风险不可控”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加回滚接口、超时自动取消。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - rollback
+      - undo
+      - cancel
+      - revert
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否对高影响操作缺少回滚或取消能力
+  - id: S2-03-005
+    item: 检查是否在日志中明文记录凭据
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在日志中明文记录凭据”是否在技能实现、配置或说明文档中真实存在，重点核查 日志、调试打印。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 日志、调试打印，确认是否存在与“检查是否在日志中明文记录凭据”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“明文记录密码/Token，极易泄露”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 敏感字段脱敏，禁止明文输出。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - logger\..+password
+      - logger\..+token
+      - console\.log\(.+secret
+      - print\(.+apikey
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在日志中明文记录凭据
+  - id: S2-03-006
+    item: 检查是否缺少关键安全事件审计
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少关键安全事件审计”是否在技能实现、配置或说明文档中真实存在，重点核查 权限/外联/文件/命令操作。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 权限/外联/文件/命令操作，确认是否存在与“检查是否缺少关键安全事件审计”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“无审计日志，出事无法追溯”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 补充完整审计字段：操作人、时间、结果。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Human-in-the-Loop Controls；Monitoring and Logging
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - audit
+      - trace[_-]?id
+      - security[_-]?event
+      - operation[_-]?log
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少关键安全事件审计
+- id: S2-G04
+  category: 权限与访问控制类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-04-001
+    item: 检查是否调用提权或沙箱逃逸相关系统接口
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否调用提权或沙箱逃逸相关系统接口”是否在技能实现、配置或说明文档中真实存在，重点核查 系统调用/权限提升代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 系统调用/权限提升代码，确认是否存在与“检查是否调用提权或沙箱逃逸相关系统接口”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可突破沙箱限制，访问宿主机资源”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 移除逃逸/提权逻辑，遵循沙箱约束。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Path Traversal；Improper Authorization；Hidden Functionality
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - ptrace
+      - unshare
+      - capset
+      - setuid\(
+      - docker\.sock
+      - /proc/self/ns
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否调用提权或沙箱逃逸相关系统接口
+  - id: S2-04-002
+    item: 检查是否访问宿主机敏感路径
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否访问宿主机敏感路径”是否在技能实现、配置或说明文档中真实存在，重点核查 文件系统访问代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 文件系统访问代码，确认是否存在与“检查是否访问宿主机敏感路径”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“直接读取宿主机敏感文件，逃逸沙箱”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 禁止访问宿主路径，仅开放工作区。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Path Traversal；Improper Authorization；Hidden Functionality
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - /etc/
+      - /root/
+      - /var/run/docker.sock
+      - /proc/
+      - C:\\Windows
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否访问宿主机敏感路径
+  - id: S2-04-003
+    item: 检查是否允许通过相对路径穿越访问越界文件
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否允许通过相对路径穿越访问越界文件”是否在技能实现、配置或说明文档中真实存在，重点核查 文件路径拼接/读写代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 文件路径拼接/读写代码，确认是否存在与“检查是否允许通过相对路径穿越访问越界文件”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可通过../穿越目录，访问工作区外敏感文件”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 路径规范化，强制根目录边界校验。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Path Traversal；Improper Authorization；Hidden Functionality
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - \.\./
+      - \.\\\.\\
+      - path\.join\(.+input
+      pass_if: no_match
+      reason: 发现相对路径穿越危险信号且缺少路径规范化与根目录约束控制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - filepath.Clean
+      - path.Clean
+      - normalize
+      - canonical
+      - getCanonicalPath
+      - realpath
+      - Path.GetFullPath
+      - startswith
+      - startsWith
+      - rootDir
+      - baseDir
+      - allowlist
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - \.\./
+      - \.\\\.\\
+      - path\.join\(.+input
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否允许通过相对路径穿越访问越界文件
+  - id: S2-04-004
+    item: 检查是否允许通过绝对路径访问越界文件
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否允许通过绝对路径访问越界文件”是否在技能实现、配置或说明文档中真实存在，重点核查 文件访问代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 文件访问代码，确认是否存在与“检查是否允许通过绝对路径访问越界文件”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“允许绝对路径，直接访问系统文件”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 禁止绝对路径，限定在工作目录内。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Path Traversal；Improper Authorization；Hidden Functionality
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - (^|["\'])/
+      - '[A-Za-z]:\\'
+      pass_if: no_match
+      reason: 发现绝对路径越界危险信号且缺少根目录限制与路径校验控制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - startswith
+      - startsWith
+      - rootDir
+      - baseDir
+      - allowedPaths
+      - path whitelist
+      - sandbox
+      - realpath
+      - getCanonicalPath
+      - Path.GetFullPath
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - (^|["\'])/
+      - '[A-Za-z]:\\'
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否允许通过绝对路径访问越界文件
+  - id: S2-04-005
+    item: 检查是否存在 许可证校验逻辑不闭环
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 高
+    detection_target: 检测“检查是否存在 许可证校验逻辑不闭环”是否在技能实现、配置或说明文档中真实存在，重点核查 授权校验逻辑（try-except/状态码判断/返回体校验/默认返回）。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 授权校验逻辑（try-except/状态码判断/返回体校验/默认返回），确认是否存在与“检查是否存在 许可证校验逻辑不闭环”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“许可证校验采用 Fail-Open：异常吞掉、仅判断 200、不校验 valid、无默认拒绝，可绕过授权免费使用付费能力”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 采用 Fail-Closed：1) 捕获异常并拒绝；2) 校验 HTTP 200 且返回体 valid=true；3) 函数末尾默认返回 false。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Path Traversal；Improper Authorization；Hidden Functionality
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - except:\s*pass
+      - return\s+true
+      - status_code\s*==\s*200
+      - valid\s*\|\|\s*true
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否存在 许可证校验逻辑不闭环
+- id: S2-G05
+  category: 供应链安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-05-001
+    item: 检查是否引入存在已知高危远程执行漏洞的依赖
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测依赖清单中是否包含存在已知高危远程执行漏洞的依赖，重点核查依赖版本、锁文件和漏洞公告。
+    detection_method: 依赖清单分析+漏洞信息复核。原因：该问题核心是版本与公开漏洞情报的匹配关系，需要结合依赖清单和漏洞资料判断。
+    verification_steps:
+    - 1. 读取依赖清单和锁文件，列出实际引入版本。
+    - 2. 对照漏洞数据库或公告，确认是否存在已知高危远程执行漏洞。
+    - 3. 复核漏洞影响范围，确认该依赖是否在技能实际运行路径中可达。
+    fix_suggestion: 升级到无已知高危漏洞的版本，并通过锁版本和漏洞扫描阻止回退。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: require_pattern
+      include_globs:
+      - '**/*'
+      patterns:
+      - package-lock\.json
+      - pnpm-lock\.yaml
+      - yarn\.lock
+      - requirements\.txt
+      - go\.sum
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否引入存在已知高危远程执行漏洞的依赖
+  - id: S2-05-002
+    item: 检查是否引入存在已知高危数据泄露漏洞的依赖
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测依赖清单中是否包含存在已知高危数据泄露漏洞的依赖，重点核查依赖版本、锁文件和漏洞公告。
+    detection_method: 依赖清单分析+漏洞信息复核。原因：需要把实际依赖版本与已知漏洞情报逐项比对，才能确认真实风险。
+    verification_steps:
+    - 1. 读取依赖清单和锁文件，列出实际引入版本。
+    - 2. 对照漏洞数据库或公告，确认是否存在已知高危数据泄露漏洞。
+    - 3. 复核漏洞影响范围，确认该依赖是否在技能数据处理路径中可达。
+    fix_suggestion: 升级到无已知高危漏洞的版本，并通过锁版本和漏洞扫描阻止回退。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: require_pattern
+      include_globs:
+      - '**/*'
+      patterns:
+      - package-lock\.json
+      - pnpm-lock\.yaml
+      - yarn\.lock
+      - requirements\.txt
+      - go\.sum
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否引入存在已知高危数据泄露漏洞的依赖
+  - id: S2-05-003
+    item: 检查是否引入疑似拼写劫持依赖包
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测依赖名称中是否存在疑似拼写劫持包，重点核查包名相似性、来源仓库和维护者信息。
+    detection_method: 依赖名称审查+来源复核。原因：拼写劫持主要依赖名称近似和来源伪装，需要结合包名与来源一起判断。
+    verification_steps:
+    - 1. 列出全部依赖包名，检查是否与常见官方包存在高相似拼写。
+    - 2. 核对包的来源地址、发布主体和下载渠道是否与官方信息一致。
+    - 3. 对高相似包进行人工复核，确认是否属于误拼或投毒包。
+    fix_suggestion: 替换为官方包名，并在源侧启用包名审核和私有镜像。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - req[u]?ests[s]?
+      - numppy
+      - urlib3
+      - colourama
+      - pyto[rn]ch
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否引入疑似拼写劫持依赖包
+  - id: S2-05-004
+    item: 检查是否引入来源异常或维护者异常的依赖包
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测依赖来源或维护者信息是否异常，重点核查来源地址、维护者变更、发布时间和发布渠道。
+    detection_method: 来源审查+维护者异常复核。原因：该问题主要体现在来源与发布主体异常，需要人工结合发布背景确认。
+    verification_steps:
+    - 1. 检查依赖包来源地址、发布仓库和维护者信息。
+    - 2. 关注近期维护者异常变更、突然发布或来源漂移等信号。
+    - 3. 对异常依赖做人工复核，确认是否需要替换或锁定。
+    fix_suggestion: 审核维护者、来源和发布时间异常信号，仅保留可信依赖。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - github\.com/.+/.+/(archive|releases)/.+\.(zip|tar\.gz)
+      - git\+http
+      - raw\.githubusercontent\.com
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否引入来源异常或维护者异常的依赖包
+  - id: S2-05-005
+    item: 检查是否使用通配符版本导致依赖漂移
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测依赖声明中是否使用通配符版本，重点核查 package、requirements 或 lockfile 对应定义。
+    detection_method: 静态检查为主。原因：该问题直接体现在依赖声明语法上，通过静态检查即可准确判断。
+    verification_steps:
+    - 1. 检查依赖声明文件中是否使用 *、latest 等通配符版本。
+    - 2. 复核这些声明是否会导致安装结果随时间变化。
+    - 3. 验证是否存在锁文件或其他机制固定最终版本。
+    fix_suggestion: 改为精确版本并提交锁文件，确保构建结果可复现。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: forbid_pattern
+      include_globs:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/pnpm-lock.yaml'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      patterns:
+      - \*
+      - latest
+      - \^\d
+      - ~\d
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否使用通配符版本导致依赖漂移
+  - id: S2-05-006
+    item: 检查是否使用范围版本导致构建结果不稳定
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测依赖声明中是否使用范围版本，重点核查 semver 范围表达式和最终安装结果。
+    detection_method: 静态检查为主。原因：范围版本风险主要来自声明方式和构建结果漂移，静态检查最直接。
+    verification_steps:
+    - 1. 检查依赖声明是否使用 >、>=、^、~ 等范围版本表达式。
+    - 2. 复核这些范围是否会导致不同时间构建出不同依赖版本。
+    - 3. 检查是否有锁文件或发布流程固定最终产物。
+    fix_suggestion: 改为精确版本并提交锁文件，确保构建结果可复现。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/specifications/
+    - 关键上下文：依赖来源可信、版本固定、完整性验证
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Artifact Integrity；Trusted Sources
+    detection:
+      type: forbid_pattern
+      include_globs:
+      - '**/package.json'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      patterns:
+      - \^\d
+      - ~\d
+      - '>=?\s*\d'
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否使用范围版本导致构建结果不稳定
+  - id: S2-05-007
+    item: 检查技能发布包与审查源码版本是否一致
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测进入技能仓库的发布包是否与被审查源码版本、构建结果和版本标识一致，重点核查发布物、源码提交、版本号和构建产物映射关系。
+    detection_method: 静态分析+构建产物比对。原因：该问题核心在于审查对象、版本标识和最终交付物是否一致，需要通过源码、构建结果、版本信息和发布包内容进行逐项比对确认。
+    verification_steps:
+    - 1. 提取发布包版本号、提交号、构建时间和产物清单，与送审源码和构建记录逐项比对。
+    - 2. 检查发布包中文件清单、哈希和关键脚本是否与审查时的构建结果一致。
+    - 3. 在隔离环境重新构建同版本源码，比较生成产物与入库发布包是否存在差异，并记录差异来源。
+    fix_suggestion: 为技能发布流程建立源码版本、构建产物、发布包三者的强绑定校验；入库前强制校验版本号、提交号和关键文件哈希一致。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Verify Provenance；Release Integrity；Artifact Traceability
+    - SLSA
+    - 链接：https://slsa.dev/
+    - 关键上下文：Source to Artifact Provenance；Build Integrity
+    detection:
+      type: require_pattern
+      include_globs:
+      - '**/*.md'
+      - SKILL.md
+      - README*
+      - docs/**/*.md
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      - '**/package.json'
+      - '**/pyproject.toml'
+      - '**/setup.py'
+      patterns:
+      - version
+      - tag
+      - commit
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查技能发布包与审查源码版本是否一致
+  - id: S2-05-008
+    item: 检查技能交付物是否包含未声明的预编译文件、脚本或二进制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能交付物中是否存在未在声明、源码或交付说明中披露的预编译文件、脚本或二进制，重点核查压缩包内容、可执行文件和构建输出目录。
+    detection_method: 静态清单审查+交付物内容检查。原因：该问题关键在于交付物实际包含了什么内容、是否超出声明范围，最有效的方法是直接审查包内容、文件类型和可执行成分。
+    verification_steps:
+    - 1. 解包技能交付物，列出全部文件类型、目录结构和可执行成分，识别脚本、二进制、动态库和预编译产物。
+    - 2. 将交付物清单与技能说明、源码目录和构建输出清单逐项比对，确认是否存在未声明文件。
+    - 3. 对未声明的可执行内容检查其来源、用途和触发路径，必要时通过静态扫描与配置复核确认是否会被自动加载或执行。
+    fix_suggestion: 为技能交付物建立允许文件类型和允许制品清单；未声明的脚本、二进制和预编译文件默认禁止入库，确需保留时必须补充声明和用途说明。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Artifact Integrity；Package Review；Build and Release Controls
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Monitoring and Logging
+    detection:
+      type: artifact_vs_docs
+      include_globs:
+      - '**/*.zip'
+      - '**/*.tar'
+      - '**/*.tgz'
+      - '**/*.tar.gz'
+      - '**/*.whl'
+      - '**/*.jar'
+      - '**/*.nupkg'
+      - '**/*.vsix'
+      - dist/**/*
+      - release/**/*
+      - build/**/*
+      - '**/*'
+      artifact_include_globs:
+      - '**/*.zip'
+      - '**/*.tar'
+      - '**/*.tgz'
+      - '**/*.tar.gz'
+      - '**/*.whl'
+      - '**/*.jar'
+      - '**/*.nupkg'
+      - '**/*.vsix'
+      - dist/**/*
+      - release/**/*
+      - build/**/*
+      - '**/*'
+      artifact_patterns:
+      - \.so$
+      - \.dll$
+      - \.exe$
+      - \.bin$
+      - \.class$
+      - \.jar$
+      - \.pyc$
+      - \.node$
+      doc_globs: *id003
+      doc_include_globs: *id003
+      doc_patterns:
+      - 二进制
+      - 预编译
+      - compiled
+      - artifact
+      - 发布包
+      pass_if: no_artifact_match_or_doc_match
+      reason: 发现预编译或二进制交付物时，文档或清单中必须有声明
+    pass_condition: no_artifact_match_or_doc_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查技能交付物是否包含未声明的预编译文件、脚本或二进制
+  - id: S2-05-009
+    item: 检查是否缺少可追溯的依赖 SBOM 清单
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测技能交付物是否附带可追溯的依赖 SBOM 清单，重点核查项目根目录、发布物和交付说明。
+    detection_method: 静态清单审查+发布物比对。原因：该问题重点在交付物是否提供可追溯依赖信息，需要直接检查交付清单。
+    verification_steps:
+    - 1. 检查项目根目录或发布物中是否存在 SBOM 文件。
+    - 2. 复核 SBOM 是否覆盖主要依赖、版本和来源信息。
+    - 3. 验证 SBOM 是否与当前发布版本和实际依赖清单一致。
+    fix_suggestion: 生成并随发布物保存 SBOM，用于追踪依赖来源和漏洞影响面。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Inventory Dependencies；Track Component Origins；Verify Artifact Metadata
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Software Bill of Materials；Dependency Inventory
+    detection:
+      type: require_file_presence
+      required_files:
+      - SBOM
+      - sbom.json
+      - cyclonedx
+      - spdx
+      include_globs:
+      - '**/*'
+      patterns:
+      - SBOM
+      - sbom\.json
+      - cyclonedx
+      - spdx
+      pass_if: match_found
+      reason: 必须发现文件或制品证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少可追溯的依赖 SBOM 清单
+  - id: S2-05-010
+    item: 检查是否缺少可复现构建所需的依赖锁文件
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测技能项目是否提供可复现构建所需的依赖锁文件，重点核查项目根目录和发布说明。
+    detection_method: 静态检查+配置一致性复核。原因：该问题同时涉及锁文件存在性和依赖声明约束，应通过静态文件与配置检查确认。
+    verification_steps:
+    - 1. 检查项目根目录中是否存在 lockfile 或等效锁定文件。
+    - 2. 复核锁文件是否与依赖声明和当前发布版本匹配。
+    - 3. 验证在隔离环境重装依赖时是否可得到一致结果。
+    fix_suggestion: 提交锁文件并纳入 CI 校验，保证环境间安装结果一致。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Pin and Verify Dependencies；Reproducible Consumption Controls
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Dependency Pinning；Reproducible Builds
+    detection:
+      type: require_file_presence
+      required_files:
+      - package-lock.json
+      - pnpm-lock.yaml
+      - yarn.lock
+      - poetry.lock
+      - go.sum
+      include_globs:
+      - '**/*'
+      patterns:
+      - package-lock\.json
+      - pnpm-lock\.yaml
+      - yarn\.lock
+      - poetry\.lock
+      - go\.sum
+      pass_if: match_found
+      reason: 必须发现文件或制品证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少可复现构建所需的依赖锁文件
+  - id: S2-05-011
+    item: 检查是否从未经审核的第三方源下载依赖
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否从未经审核的第三方源下载依赖，重点核查依赖源配置、镜像地址和安装脚本。
+    detection_method: 静态检查+来源配置复核+隔离验证。原因：该问题取决于配置声明和真实安装行为，二者都需要确认。
+    verification_steps:
+    - 1. 检查包管理器配置、镜像地址和安装脚本中使用的依赖源。
+    - 2. 识别是否存在未经审核的第三方源、个人源或临时下载地址。
+    - 3. 通过静态扫描与配置复核确认依赖安装流程是否会实际访问这些未审核来源。
+    fix_suggestion: 仅允许经过审核的依赖源和镜像源，并封禁临时下载地址。
+    source_context:
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Use Trusted Registries；Verify Provenance of Dependencies
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Use Trusted Sources；Restrict Third-Party Registries
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - github\.com/.+\.(zip|tar\.gz)
+      - curl.+pip
+      - raw\.githubusercontent\.com
+      - http://.+/simple/
+      - pip install https?://
+      - npm install https?://
+      - yarn add https?://
+      - go install .+@latest
+      - composer require .+https?://
+      - gem install .+--source
+      - nuget add source
+      - Maven\s+repository
+      - gradle\s+repositories
+      - ivy\s*\{
+      - helm repo add
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否从未经审核的第三方源下载依赖
+  - id: S2-05-012
+    item: 检查是否从可变更 URL 拉取运行依赖或规则制品
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能是否会从可变更 URL 拉取运行依赖或规则制品，重点核查下载逻辑、配置地址和启动流程。
+    detection_method: 静态检查+运行路径复核。原因：需要同时确认代码路径、地址稳定性和加载约束，适合通过静态检查判断。
+    verification_steps:
+    - 1. 检查启动逻辑、下载函数和配置文件，识别是否存在直接从 URL 拉取运行依赖或规则制品的行为。
+    - 2. 复核 URL 是否可变、是否缺少固定版本、哈希或签名约束。
+    - 3. 通过静态扫描与配置复核确认首次运行或启动时是否会实际执行该拉取行为。
+    fix_suggestion: 将运行依赖收敛到构建阶段固定制品，禁止运行时从可变 URL 直接拉取。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Pin Sources；Verify Integrity；Prefer Immutable Artifacts
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Verify Provenance of Dependencies；Pin and Verify Dependencies
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - https?://.+(latest|main|master)
+      - raw\.githubusercontent\.com/.+/(main|master)/
+      - download.*https?://
+      - curl\s+-O
+      - wget\s+
+      - Invoke-WebRequest
+      - Invoke-RestMethod
+      - WebClient\.DownloadFile
+      - HttpClient\.GetAsync
+      - http\.Get\(
+      - urllib\.request
+      - requests\.get
+      - axios\.get
+      - fetch\(
+      - DownloadString
+      - download_to_file
+      - go-getter
+      pass_if: no_match
+      reason: 发现可变下载源信号且缺少完整性或固定版本控制时判定未通过
+      danger_patterns:
+      - https?://.+(latest|main|master)
+      - raw\.githubusercontent\.com/.+/(main|master)/
+      - download.*https?://
+      - curl\s+-O
+      - wget\s+
+      - Invoke-WebRequest
+      - Invoke-RestMethod
+      - WebClient\.DownloadFile
+      - HttpClient\.GetAsync
+      - http\.Get\(
+      - urllib\.request
+      - requests\.get
+      - axios\.get
+      - fetch\(
+      - DownloadString
+      - download_to_file
+      - go-getter
+      control_include_globs: *id001
+      control_patterns:
+      - sha256
+      - sha512
+      - checksum
+      - hash
+      - signature
+      - sigstore
+      - cosign
+      - gpg
+      - verify
+      - pinned
+      - immutable
+      - version pin
+      - digest
+      - '@sha256:'
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否从可变更 URL 拉取运行依赖或规则制品
+  - id: S2-05-013
+    item: 检查是否缺少远程 Prompt 或规则文件哈希校验
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测远程 Prompt 或规则文件是否缺少哈希校验，重点核查远程资源配置、下载逻辑和完整性验证流程。
+    detection_method: 静态分析+远程资源加载复核。原因：需要确认资源来源、完整性校验和加载约束，适合通过静态检查判断。
+    verification_steps:
+    - 1. 检查远程 Prompt、规则文件或模板资源的下载与加载逻辑。
+    - 2. 复核是否对远程文件执行固定哈希校验，以及哈希是否随版本同步管理。
+    - 3. 通过静态扫描与配置复核确认远程文件被替换后系统是否会拒绝加载。
+    fix_suggestion: 为远程 Prompt 与规则文件增加哈希固定和变更审批。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Verify Integrity；Prefer Immutable Artifacts
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Pin and Verify Dependencies；Verify Artifact Metadata
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - sha256
+      - hashlib
+      - integrity
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少远程 Prompt 或规则文件哈希校验
+  - id: S2-05-014
+    item: 检查是否缺少远程配置文件签名或来源校验
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测远程配置文件是否缺少签名或来源校验，重点核查下载地址、签名验证和来源白名单。
+    detection_method: 静态分析+远程配置加载复核+隔离验证。原因：该问题取决于来源控制和签名验证是否完整，需要结合加载路径和结果判断。
+    verification_steps:
+    - 1. 检查远程配置文件的来源地址、下载逻辑和加载条件。
+    - 2. 复核是否对配置文件进行签名验证或来源白名单校验。
+    - 3. 通过静态扫描与配置复核确认非白名单来源或伪造配置是否会被拒绝。
+    fix_suggestion: 为远程配置启用签名验证和来源白名单。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Verify Provenance；Use Trusted Sources；Verify Integrity
+    - OpenSSF Secure Supply Chain Consumption Framework
+    - 链接：https://openssf.org/community/ssc-framework/
+    - 关键上下文：Verify Provenance of Dependencies；Use Trusted Registries
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - signature
+      - verify
+      - allowlist
+      - trusted[_-]?source
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少远程配置文件签名或来源校验
+  - id: S2-05-015
+    item: 检查是否缺少技能发布包哈希校验
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能发布包是否缺少哈希校验，重点核查发布流程、安装流程和制品校验元数据。
+    detection_method: 发布流程审查+制品校验复核+隔离验证。原因：该问题属于交付物完整性控制，需要检查发布、分发和入库环节是否真正校验。
+    verification_steps:
+    - 1. 检查技能发布流程是否生成并分发发布包哈希。
+    - 2. 复核安装或入库流程是否会对发布包执行哈希校验。
+    - 3. 通过静态扫描与配置复核确认发布包被篡改后是否会被拒绝入库或安装。
+    fix_suggestion: 在发布和安装环节校验技能包哈希，阻止篡改包落地。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Verify Integrity；Artifact Metadata；Release Integrity
+    - SLSA
+    - 链接：https://slsa.dev/
+    - 关键上下文：Artifact Integrity；Build Integrity
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - sha256
+      - hash
+      - checksum
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少技能发布包哈希校验
+  - id: S2-05-016
+    item: 检查是否缺少技能发布包签名校验
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测技能发布包是否缺少签名校验，重点核查签名生成、验签流程和签发主体校验。
+    detection_method: 发布流程审查+验签流程复核+隔离验证。原因：该问题需要同时确认签名生成、验签逻辑和签发主体校验是否成立。
+    verification_steps:
+    - 1. 检查技能发布流程是否为发布包生成签名。
+    - 2. 复核入库或安装流程是否会执行验签，并校验签发主体是否可信。
+    - 3. 通过静态扫描与配置复核确认签名缺失或签名伪造的发布包是否会被拒绝。
+    fix_suggestion: 为技能发布包启用签名验签，并校验签发主体。
+    source_context:
+    - OWASP Software Supply Chain Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html
+    - 关键上下文：Verify Provenance；Artifact Signing；Release Integrity
+    - Sigstore
+    - 链接：https://www.sigstore.dev/
+    - 关键上下文：Signing；Verification；Software Supply Chain Security
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - sign
+      - cosign
+      - sigstore
+      - gpg
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少技能发布包签名校验
+- id: S2-G06
+  category: 输入处理与注入防护类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-06-001
+    item: 检查是否将外部输入直接拼接到 Shell 命令
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否将外部输入直接拼接到 Shell 命令”是否在技能实现、配置或说明文档中真实存在，重点核查 命令拼接/执行代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 命令拼接/执行代码，确认是否存在与“检查是否将外部输入直接拼接到 Shell 命令”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“用户输入直接拼接Shell，可执行任意命令”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 使用参数化命令，禁止字符串拼接。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Input Validation Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+    - 关键上下文：Allowlist Validation；Schema Validation
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Insecure Output Handling
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - os\.system\(.+input
+      - subprocess\..+\+.+input
+      - exec\(.+input
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否将外部输入直接拼接到 Shell 命令
+  - id: S2-06-002
+    item: 检查是否将外部输入直接拼接到系统 Prompt
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否将外部输入直接拼接到系统 Prompt”是否在技能实现、配置或说明文档中真实存在，重点核查 Prompt构造/拼接代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 Prompt构造/拼接代码，确认是否存在与“检查是否将外部输入直接拼接到系统 Prompt”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“用户输入直接注入系统提示词，篡改指令”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加Prompt护栏，隔离用户输入与系统指令。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Input Validation Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+    - 关键上下文：Allowlist Validation；Schema Validation
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Insecure Output Handling
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - system[_-]?prompt.+\+
+      - prompt.+input
+      - messages.+system.+content.+input
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否将外部输入直接拼接到系统 Prompt
+  - id: S2-06-003
+    item: 检查是否将外部输入直接拼接到 SQL 语句
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否将外部输入直接拼接到 SQL 语句”是否在技能实现、配置或说明文档中真实存在，重点核查 SQL拼接/查询代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 SQL拼接/查询代码，确认是否存在与“检查是否将外部输入直接拼接到 SQL 语句”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“用户输入直接拼SQL，导致数据泄露/篡改”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 使用预编译语句、参数化查询。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Input Validation Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+    - 关键上下文：Allowlist Validation；Schema Validation
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Insecure Output Handling
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - SELECT.+\+.+input
+      - WHERE.+\+.+input
+      - execute\(.+f["\"]
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否将外部输入直接拼接到 SQL 语句
+  - id: S2-06-004
+    item: 检查是否缺少参数类型和格式校验
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少参数类型和格式校验”是否在技能实现、配置或说明文档中真实存在，重点核查 工具入口、API handler、参数定义。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 工具入口、API handler、参数定义，确认是否存在与“检查是否缺少参数类型和格式校验”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“无类型/长度/格式约束，易注入、越权、崩溃”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 补充JSON Schema/Pydantic/Zod强校验。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Input Validation Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+    - 关键上下文：Allowlist Validation；Schema Validation
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Insecure Output Handling
+    detection:
+      type: require_pattern
+      include_globs: *id001
+      patterns:
+      - jsonschema
+      - pydantic
+      - zod
+      - ajv
+      - validate\(
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少参数类型和格式校验
+  - id: S2-06-005
+    item: 检查是否缺少高危接口必填参数校验
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少高危接口必填参数校验”是否在技能实现、配置或说明文档中真实存在，重点核查 文件/网络/命令相关入口。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 文件/网络/命令相关入口，确认是否存在与“检查是否缺少高危接口必填参数校验”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“关键参数为空仍可执行，导致异常”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加必填与非空校验。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Input Validation Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+    - 关键上下文：Allowlist Validation；Schema Validation
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Insecure Output Handling
+    detection:
+      type: require_pattern
+      include_globs: *id001
+      patterns:
+      - required
+      - NotNull
+      - minLength
+      - if\s*\(!.+\)
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少高危接口必填参数校验
+- id: S2-G07
+  category: 网络与外联安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-07-001
+    item: 检查是否可向内网或元数据地址发起请求
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否可向内网或元数据地址发起请求”是否在技能实现、配置或说明文档中真实存在，重点核查 URL请求/网络调用代码。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 URL请求/网络调用代码，确认是否存在与“检查是否可向内网或元数据地址发起请求”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可访问内网/metadata服务，造成内网渗透”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 启用私网IP拦截，配置目标白名单。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP SSRF Prevention Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+    - 关键上下文：IP Allowlist；Redirect Validation
+    - OWASP Transport Layer Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html
+    - 关键上下文：TLS Validation；Sensitive Data in Transit
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - 169\.254\.169\.254
+      - 127\.0\.0\.1
+      - localhost
+      - 10\.
+      - 192\.168\.
+      - 172\.(1[6-9]|2\d|3[01])\.
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否可向内网或元数据地址发起请求
+  - id: S2-07-002
+    item: 检查是否因自动重定向导致 SSRF 绕过
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否因自动重定向导致 SSRF 绕过”是否在技能实现、配置或说明文档中真实存在，重点核查 HTTP客户端配置。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 HTTP客户端配置，确认是否存在与“检查是否因自动重定向导致 SSRF 绕过”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“跟随重定向，被诱导访问内网”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 禁止自动重定向，或重定向后二次校验。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP SSRF Prevention Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+    - 关键上下文：IP Allowlist；Redirect Validation
+    - OWASP Transport Layer Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html
+    - 关键上下文：TLS Validation；Sensitive Data in Transit
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - allow_redirects\s*=\s*True
+      - followRedirect
+      - redirect\s*:\s*"follow"
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否因自动重定向导致 SSRF 绕过
+  - id: S2-07-003
+    item: 检查是否关闭 TLS 证书校验
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否关闭 TLS 证书校验”是否在技能实现、配置或说明文档中真实存在，重点核查 HTTP客户端配置。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 HTTP客户端配置，确认是否存在与“检查是否关闭 TLS 证书校验”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“关闭证书验证，易被中间人攻击”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 生产必须开启；测试例外需隔离声明。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP SSRF Prevention Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+    - 关键上下文：IP Allowlist；Redirect Validation
+    - OWASP Transport Layer Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html
+    - 关键上下文：TLS Validation；Sensitive Data in Transit
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - verify\s*=\s*False
+      - InsecureSkipVerify\s*:\s*true
+      - rejectUnauthorized\s*:\s*false
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否关闭 TLS 证书校验
+  - id: S2-07-004
+    item: 检查是否以明文传输敏感数据
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否以明文传输敏感数据”是否在技能实现、配置或说明文档中真实存在，重点核查 网络请求。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 网络请求，确认是否存在与“检查是否以明文传输敏感数据”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“明文传输敏感数据，可被抓包窃取”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 全部使用HTTPS/WSS。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP SSRF Prevention Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+    - 关键上下文：IP Allowlist；Redirect Validation
+    - OWASP Transport Layer Protection Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html
+    - 关键上下文：TLS Validation；Sensitive Data in Transit
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - http://
+      - ws://
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否以明文传输敏感数据
+- id: S2-G08
+  category: 文件与内容处理安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-08-001
+    item: 检查是否存在任意文件上传能力且缺少类型、路径与存储隔离限制
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 高
+    detection_target: 检测技能是否提供文件上传或内容落地能力，同时缺少文件类型白名单、扩展名与 MIME 双重校验、目标路径限制和独立存储隔离，重点核查上传入口、保存逻辑和存储目录配置。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查上传入口、文件保存逻辑、对象存储写入逻辑和目录配置，识别是否存在任意文件接收与落地能力。
+    - 2. 用代码搜索定位 multipart、form-data、upload、save、write、move、copy 等上传和保存相关实现，并复核是否存在扩展名、MIME、魔数、目标路径和存储隔离控制。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认上传内容是否可被写入任意路径、覆盖现有文件或落入可被解析执行的目录。
+    fix_suggestion: 为上传能力增加类型白名单、扩展名与文件头双重校验、路径白名单和独立隔离存储；禁止上传内容进入脚本目录、模板目录、插件目录和可执行路径。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：List Allowed Extensions；Validate the File Type；Change the Filename；Store the Files on a Different Server
+    - MITRE CWE-434 Unrestricted Upload of File with Dangerous Type
+    - 链接：https://cwe.mitre.org/data/definitions/434.html
+    - 关键上下文：Description；Potential Mitigations；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - multipart/form-data
+      - FormData
+      - MultipartFile
+      - IFormFile
+      - move_uploaded_file
+      - saveAs
+      - upload
+      - content-type
+      - filename
+      - MIME
+      - MultipartHttpServletRequest
+      - Request\.FormFile
+      - SaveUploadedFile
+      - c\.SaveUploadedFile
+      - r\.FormFile
+      - ParseMultipartForm
+      - OpenFileDialog
+      - copy\(.*IFormFile
+      - transferTo\(
+      - Part\s+filePart
+      - Files\.copy\(
+      - file\.mv\(
+      - multer
+      - busboy
+      - express-fileupload
+      - koa-body
+      - hapi\/inert
+      - request\.files
+      - \$_FILES
+      - HttpPostedFileBase
+      - PostedFile
+      - UploadFile
+      - ReceiveMultipart
+      - mime/multipart
+      - ContentDisposition\.FileName
+      - CreateFormFile
+      - TemporaryFileUploadHandler
+      - UploadedFile
+      - FastAPI\s*File\(
+      - UploadFile\)
+      pass_if: no_match
+      reason: 发现上传能力信号且缺少类型校验、路径限制或存储隔离控制时判定未通过
+      danger_patterns:
+      - multipart/form-data
+      - FormData
+      - MultipartFile
+      - IFormFile
+      - move_uploaded_file
+      - saveAs
+      - upload
+      - content-type
+      - filename
+      - MIME
+      - MultipartHttpServletRequest
+      - Request\.FormFile
+      - SaveUploadedFile
+      - c\.SaveUploadedFile
+      - r\.FormFile
+      - ParseMultipartForm
+      - OpenFileDialog
+      - copy\(.*IFormFile
+      - transferTo\(
+      - Part\s+filePart
+      - Files\.copy\(
+      - file\.mv\(
+      - multer
+      - busboy
+      - express-fileupload
+      - koa-body
+      - hapi\/inert
+      - request\.files
+      - \$_FILES
+      - HttpPostedFileBase
+      - PostedFile
+      - UploadFile
+      - ReceiveMultipart
+      - mime/multipart
+      - ContentDisposition\.FileName
+      - CreateFormFile
+      - TemporaryFileUploadHandler
+      - UploadedFile
+      - FastAPI\s*File\(
+      - UploadFile\)
+      control_include_globs: *id001
+      control_patterns:
+      - allowlist
+      - whitelist
+      - mime
+      - content_type
+      - content-type
+      - magic
+      - file signature
+      - mimeType
+      - getContentType
+      - secure_filename
+      - sanitize_filename
+      - random_filename
+      - uuid
+      - rename
+      - quarantine
+      - isolated
+      - sandbox
+      - upload_dir
+      - uploads/tmp
+      - private bucket
+      - presign
+      - virus scan
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: block
+      reason: 未通过静态规则：检查是否存在任意文件上传能力且缺少类型、路径与存储隔离限制
+  - id: S2-08-002
+    item: 检查是否在压缩包解压时存在 Zip Slip 路径穿越
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否在压缩包解压时存在 Zip Slip 路径穿越”是否在技能实现、配置或说明文档中真实存在，重点核查 解压逻辑。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 解压逻辑，确认是否存在与“检查是否在压缩包解压时存在 Zip Slip 路径穿越”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“压缩包../穿越，越权写系统目录”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 路径规范化，强制限定沙箱目录。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：File Type Validation；Storage Isolation；Archive Extraction
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Zip Slip；Deserialization；Resource Exhaustion
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - extractall
+      - unzip
+      - \.\./
+      - ZipInputStream
+      - ZipFile
+      - archive/zip
+      - tarfile\.extract
+      - ExtractToDirectory
+      - java\.util\.zip
+      - SharpCompress
+      - adm-zip
+      - yauzl
+      - tar\.extract
+      - sevenzip
+      - gunzip
+      - untar
+      - JarFile
+      - PharData
+      - extractTo\(
+      pass_if: no_match
+      reason: 发现解压与路径穿越信号且缺少规范化与目标目录约束时判定未通过
+      danger_patterns:
+      - extractall
+      - unzip
+      - \.\./
+      - ZipInputStream
+      - ZipFile
+      - archive/zip
+      - tarfile\.extract
+      - ExtractToDirectory
+      - java\.util\.zip
+      - SharpCompress
+      - adm-zip
+      - yauzl
+      - tar\.extract
+      - sevenzip
+      - gunzip
+      - untar
+      - JarFile
+      - PharData
+      - extractTo\(
+      control_include_globs: *id001
+      control_patterns:
+      - normalize
+      - canonical
+      - cleanpath
+      - filepath.Clean
+      - path.Clean
+      - realpath
+      - getCanonicalPath
+      - Path.GetFullPath
+      - startsWith
+      - startswith
+      - prefix check
+      - destinationDir
+      - targetDir
+      - sandbox
+      - allowlist
+      - whitelist
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否在压缩包解压时存在 Zip Slip 路径穿越
+  - id: S2-08-003
+    item: 检查是否允许上传内容落地后直接执行
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否允许上传内容落地后直接执行”是否在技能实现、配置或说明文档中真实存在，重点核查 上传类型校验。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 上传类型校验，确认是否存在与“检查是否允许上传内容落地后直接执行”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“上传可执行文件并运行，导致RCE”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 白名单限制类型，禁止执行权限。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：File Type Validation；Storage Isolation；Archive Extraction
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Zip Slip；Deserialization；Resource Exhaustion
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - upload.+exec
+      - save.+\.sh
+      - save.+\.exe
+      - chmod\s+\+x
+      - save.+\.bat
+      - save.+\.cmd
+      - save.+\.ps1
+      - save.+\.jar
+      - save.+\.php
+      - ProcessBuilder
+      - Start-Process
+      - ShellExecute
+      - CreateProcess
+      - bash\s+
+      - sh\s+
+      - cmd\.exe
+      - powershell\.exe
+      - php\s+.+\.php
+      - python\s+.+\.py
+      - node\s+.+\.js
+      - java\s+-jar
+      - go run
+      - chmod\s+7[0-7][0-7]
+      pass_if: no_match
+      reason: 发现上传后执行信号且缺少类型限制、执行隔离或人工确认控制时判定未通过
+      danger_patterns:
+      - upload.+exec
+      - save.+\.sh
+      - save.+\.exe
+      - chmod\s+\+x
+      - save.+\.bat
+      - save.+\.cmd
+      - save.+\.ps1
+      - save.+\.jar
+      - save.+\.php
+      - ProcessBuilder
+      - Start-Process
+      - ShellExecute
+      - CreateProcess
+      - bash\s+
+      - sh\s+
+      - cmd\.exe
+      - powershell\.exe
+      - php\s+.+\.php
+      - python\s+.+\.py
+      - node\s+.+\.js
+      - java\s+-jar
+      - go run
+      - chmod\s+7[0-7][0-7]
+      control_include_globs: *id001
+      control_patterns:
+      - allowlist
+      - whitelist
+      - mime
+      - magic
+      - noexec
+      - chmod 0644
+      - chmod 0600
+      - quarantine
+      - sandbox
+      - non-executable
+      - isolated
+      - scan
+      - approval
+      - manual_review
+      - human_review
+      - signature verify
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否允许上传内容落地后直接执行
+  - id: S2-08-004
+    item: 检查是否缺少文件大小和解析资源限制
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少文件大小和解析资源限制”是否在技能实现、配置或说明文档中真实存在，重点核查 上传配置。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 上传配置，确认是否存在与“检查是否缺少文件大小和解析资源限制”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“无大小限制，可被上传超大文件打挂”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 限制大小，校验文件头。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：File Type Validation；Storage Isolation；Archive Extraction
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Zip Slip；Deserialization；Resource Exhaustion
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - max[_-]?size
+      - Content-Length
+      - limit
+      - timeout
+      pass_if: match_found
+      reason: 未发现大小、时长或解析资源限制控制信号时判定未通过
+      required_patterns:
+      - max[_-]?size
+      - Content-Length
+      - limit
+      - timeout
+      alternative_control_patterns:
+      - MaxRequestBodySize
+      - MultipartBodyLengthLimit
+      - client_max_body_size
+      - max_file_uploads
+      - upload_max_filesize
+      - post_max_size
+      - memory_limit
+      - ReadTimeout
+      - maxBytesReader
+      - LimitedReader
+      - sizeLimit
+      - fileSizeLimit
+      - requestTimeout
+      - parse_timeout
+      match_logic: require_any_control_pattern
+      fail_when: required_patterns_all_missing
+    pass_condition: control_match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少文件大小和解析资源限制
+  - id: S2-08-005
+    item: 检查是否直接加载不可信模型文件
+    stage: 设计阶段
+    risk_personal: 高
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否直接加载不可信模型文件”是否在技能实现、配置或说明文档中真实存在，重点核查 模型加载代码。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 模型加载代码，确认是否存在与“检查是否直接加载不可信模型文件”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“加载不可信文件，可代码执行”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 使用安全格式，校验签名。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：File Type Validation；Storage Isolation；Archive Extraction
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Zip Slip；Deserialization；Resource Exhaustion
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - torch\.load
+      - pickle\.load
+      - joblib\.load
+      - onnxruntime
+      - keras\.models\.load_model
+      - tf\.saved_model\.load
+      - safetensors
+      - np\.load
+      - mxnet
+      - paddle\.load
+      - MindSpore
+      - load_checkpoint
+      - OrtSession
+      - SavedModelBundle\.load
+      - Triton
+      - deserializeCudaEngine
+      - readNet
+      - cv2\.dnn
+      - CatBoostClassifier\.load_model
+      - XGBoost\.Booster
+      pass_if: no_match
+      reason: 发现模型加载危险信号且缺少签名、哈希、来源校验或安全格式限制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - sha256
+      - checksum
+      - signature
+      - cosign
+      - sigstore
+      - verify
+      - trusted source
+      - allowlist
+      - safetensors
+      - safe format
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - torch\.load
+      - pickle\.load
+      - joblib\.load
+      - onnxruntime
+      - keras\.models\.load_model
+      - tf\.saved_model\.load
+      - safetensors
+      - np\.load
+      - mxnet
+      - paddle\.load
+      - MindSpore
+      - load_checkpoint
+      - OrtSession
+      - SavedModelBundle\.load
+      - Triton
+      - deserializeCudaEngine
+      - readNet
+      - cv2\.dnn
+      - CatBoostClassifier\.load_model
+      - XGBoost\.Booster
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否直接加载不可信模型文件
+  - id: S2-08-006
+    item: 检查是否存在不安全反序列化入口
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否存在不安全反序列化入口”是否在技能实现、配置或说明文档中真实存在，重点核查 模型加载。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 模型加载，确认是否存在与“检查是否存在不安全反序列化入口”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“加载恶意模型，导致代码执行”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 使用安全格式，来源可信。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP File Upload Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+    - 关键上下文：File Type Validation；Storage Isolation；Archive Extraction
+    - MITRE CWE Catalog
+    - 链接：https://cwe.mitre.org/
+    - 关键上下文：Zip Slip；Deserialization；Resource Exhaustion
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - pickle\.load
+      - yaml\.load\(
+      - marshal\.loads
+      - BinaryFormatter
+      - ObjectInputStream
+      - readObject\(
+      - XmlDecoder
+      - XStream
+      - JsonTypeInfo
+      - EnableDefaultTyping
+      - unserialize\(
+      - igbinary_unserialize
+      - gob\.NewDecoder
+      - decodeObject
+      - ProtoBuf\.Serializer\.Deserialize
+      - NetDataContractSerializer
+      - LosFormatter
+      - JavaScriptSerializer
+      - JToken\.ToObject
+      - AMFDeserializer
+      - SnakeYAML
+      - PyYAML
+      - serde_yaml
+      - decode_pickle
+      pass_if: no_match
+      reason: 发现反序列化危险信号且缺少类型白名单、可信来源或安全解析器控制时判定未通过
+      control_include_globs: *id001
+      control_patterns:
+      - allowlist
+      - whitelist
+      - safe_load
+      - trusted type
+      - type filter
+      - sealed class
+      - schema validation
+      - verify signature
+      match_logic: danger_without_control
+      fail_when: danger_match_and_control_missing
+      danger_patterns:
+      - pickle\.load
+      - yaml\.load\(
+      - marshal\.loads
+      - BinaryFormatter
+      - ObjectInputStream
+      - readObject\(
+      - XmlDecoder
+      - XStream
+      - JsonTypeInfo
+      - EnableDefaultTyping
+      - unserialize\(
+      - igbinary_unserialize
+      - gob\.NewDecoder
+      - decodeObject
+      - ProtoBuf\.Serializer\.Deserialize
+      - NetDataContractSerializer
+      - LosFormatter
+      - JavaScriptSerializer
+      - JToken\.ToObject
+      - AMFDeserializer
+      - SnakeYAML
+      - PyYAML
+      - serde_yaml
+      - decode_pickle
+    pass_condition: no_danger_match_or_control_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否存在不安全反序列化入口
+- id: S2-G09
+  category: 可用性与韧性类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-09-001
+    item: 检查是否缺少超时、重试上限和循环退出条件
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否缺少超时、重试上限和循环退出条件”是否在技能实现、配置或说明文档中真实存在，重点核查 循环/递归/重试。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 循环/递归/重试，确认是否存在与“检查是否缺少超时、重试上限和循环退出条件”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“无超时无上限，耗尽系统资源”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 配置timeout、retry cap、限流熔断。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Measure；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Availability；Operational Controls
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - timeout
+      - max[_-]?retry
+      - break
+      - context\.WithTimeout
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少超时、重试上限和循环退出条件
+  - id: S2-09-002
+    item: 检查是否缺少失败隔离导致错误级联传播
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否缺少失败隔离导致错误级联传播”是否在技能实现、配置或说明文档中真实存在，重点核查 异常处理。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 异常处理，确认是否存在与“检查是否缺少失败隔离导致错误级联传播”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“错误无限放大，导致级联雪崩”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加熔断、降级、隔离。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Measure；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Availability；Operational Controls
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - circuit[_-]?breaker
+      - fallback
+      - bulkhead
+      - isolation
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少失败隔离导致错误级联传播
+  - id: S2-09-003
+    item: 检查是否缺少模型调用配额与熔断控制
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否缺少模型调用配额与熔断控制”是否在技能实现、配置或说明文档中真实存在，重点核查 LLM调用。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 LLM调用，确认是否存在与“检查是否缺少模型调用配额与熔断控制”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“无限调用模型，耗尽成本与服务”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 加调用配额、速率限制。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Measure；Manage
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Availability；Operational Controls
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - rate[_-]?limit
+      - quota
+      - budget
+      - circuit[_-]?breaker
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少模型调用配额与熔断控制
+- id: S2-G10
+  category: 提示与内容安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-10-001
+    item: 检查是否使用 Unicode 混淆隐藏危险指令
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否使用 Unicode 混淆隐藏危险指令”是否在技能实现、配置或说明文档中真实存在，重点核查 字符串、注释。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 字符串、注释，确认是否存在与“检查是否使用 Unicode 混淆隐藏危险指令”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“使用Unicode/Base64隐藏恶意指令”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 清理混淆，明文编写逻辑。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - MITRE CWE-838 Inappropriate Encoding for Output Context
+    - 链接：https://cwe.mitre.org/data/definitions/838.html
+    - 关键上下文：Description；Potential Mitigations
+    - OWASP Top 10 for LLM Applications - LLM01 Prompt Injection
+    - 链接：https://genai.owasp.org/llm-top-10/llm01-prompt-injection/
+    - 关键上下文：Indirect Prompt Injection；Obfuscated Instructions
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - "\u202e"
+      - "\u2066"
+      - "\u2067"
+      - base64
+      - b64decode
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否使用 Unicode 混淆隐藏危险指令
+  - id: S2-10-002
+    item: 检查是否缺少高风险输出审核机制
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少高风险输出审核机制”是否在技能实现、配置或说明文档中真实存在，重点核查 输出返回。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 输出返回，确认是否存在与“检查是否缺少高风险输出审核机制”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“可输出违规/有害内容”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加内容安全过滤。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Training Data Poisoning；Insecure Output Handling
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Prompt Injection；Tool Output Validation
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - moderation
+      - safety[_-]?filter
+      - output[_-]?review
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少高风险输出审核机制
+  - id: S2-10-003
+    item: 检查是否信任工具返回内容并触发间接提示注入
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 中
+    detection_target: 检测“检查是否信任工具返回内容并触发间接提示注入”是否在技能实现、配置或说明文档中真实存在，重点核查 工具响应拼接Prompt。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 工具响应拼接Prompt，确认是否存在与“检查是否信任工具返回内容并触发间接提示注入”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“外部返回注入指令，控制Agent”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 隔离响应，标记不可信，清洗输入。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications
+    - 链接：https://genai.owasp.org/llm-top-10/
+    - 关键上下文：Prompt Injection；Training Data Poisoning；Insecure Output Handling
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Prompt Injection；Tool Output Validation
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - tool.+result.+prompt
+      - messages.+tool.+content
+      - append\(.+tool.+output
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否信任工具返回内容并触发间接提示注入
+- id: S2-G11
+  category: 组合与边界安全类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-11-001
+    item: 检查是否缺少跨技能通信鉴权与完整性校验
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少跨技能通信鉴权与完整性校验”是否在技能实现、配置或说明文档中真实存在，重点核查 技能调用。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 技能调用，确认是否存在与“检查是否缺少跨技能通信鉴权与完整性校验”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“跨技能调用无签名，可被伪造调用”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 增加签名、验签、身份校验。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Multi-Agent Security；Tool Security & Least Privilege
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Govern；Map；Manage
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - HMAC
+      - signature
+      - mTLS
+      - verify
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少跨技能通信鉴权与完整性校验
+- id: S2-G12
+  category: 防护与拦截能力类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-12-001
+    item: 检查是否缺少关键 Hook 点安全拦截
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否缺少关键 Hook 点安全拦截”是否在技能实现、配置或说明文档中真实存在，重点核查 钩子、拦截器。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 钩子、拦截器，确认是否存在与“检查是否缺少关键 Hook 点安全拦截”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“缺少关键安全拦截点，风险不可控”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 补充工具/LLM/外联前Hook。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Guardrails；Monitoring and Logging
+    - NIST AI Risk Management Framework
+    - 链接：https://www.nist.gov/itl/ai-risk-management-framework
+    - 关键上下文：Manage；Operational Controls
+    detection:
+      type: require_pattern
+      include_globs: *id002
+      patterns:
+      - PreToolUse
+      - PostToolUse
+      - PreLLMRequest
+      - interceptor
+      pass_if: match_found
+      reason: 必须发现控制证据才判定通过
+    pass_condition: match_found
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否缺少关键 Hook 点安全拦截
+- id: S2-G13
+  category: 基础安全实现类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-13-001
+    item: 检查是否使用可预测随机值生成安全凭据
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否使用可预测随机值生成安全凭据”是否在技能实现、配置或说明文档中真实存在，重点核查 随机数生成。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 随机数生成，确认是否存在与“检查是否使用可预测随机值生成安全凭据”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“随机数可预测，破坏安全逻辑”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 使用密码学安全随机数。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Cryptographic Storage Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
+    - 关键上下文：Randomness Requirements
+    - MITRE CWE-330 Use of Insufficiently Random Values
+    - 链接：https://cwe.mitre.org/data/definitions/330.html
+    - 关键上下文：Description；Potential Mitigations
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - random\.seed
+      - rand\(
+      - Math\.random
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否使用可预测随机值生成安全凭据
+- id: S2-G14
+  category: 安全治理类
+  enforcement_mapping:
+    high: block
+    medium: require_review
+    low: record_and_pass
+  items:
+  - id: S2-14-001
+    item: 检查是否通过描述词诱导执行隐藏高风险操作
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否通过描述词诱导执行隐藏高风险操作”是否在技能实现、配置或说明文档中真实存在，重点核查 技能名称、描述。
+    detection_method: 静态检查为主，结合人工复核。原因：该类风险通常具有明确代码、脚本或配置特征，适合通过静态扫描、模式匹配和上下文复核判断。
+    verification_steps:
+    - 1. 人工检查 技能名称、描述，确认是否存在与“检查是否通过描述词诱导执行隐藏高风险操作”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“使用高危诱导词，误导使用”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 修改描述，合规正常表述。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - OWASP Top 10 for LLM Applications - LLM01 Prompt Injection
+    - 链接：https://genai.owasp.org/llm-top-10/llm01-prompt-injection/
+    - 关键上下文：Description；Direct Prompt Injection；Indirect Prompt Injection
+    - MITRE CWE-912 Hidden Functionality
+    - 链接：https://cwe.mitre.org/data/definitions/912.html
+    - 关键上下文：Description；Detection Methods
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - 破解版
+      - 绕过限制
+      - 静默执行
+      - 无需确认
+      - 隐藏能力
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否通过描述词诱导执行隐藏高风险操作
+  - id: S2-14-002
+    item: 检查是否通过代码混淆隐藏高风险能力
+    stage: 设计阶段
+    risk_personal: /
+    risk_nonpersonal: 低
+    detection_target: 检测“检查是否通过代码混淆隐藏高风险能力”是否在技能实现、配置或说明文档中真实存在，重点核查 混淆代码、加密字符串。
+    detection_method: 静态分析+人工复核。原因：该类风险需要结合文档、配置、数据流和执行路径综合判断，单一模式匹配覆盖不足。
+    verification_steps:
+    - 1. 人工检查 混淆代码、加密字符串，确认是否存在与“检查是否通过代码混淆隐藏高风险能力”对应的实现入口、配置项或文档描述。
+    - 2. 用代码搜索定位高风险函数、命令、路径、网络目标或依赖声明，并结合上下文复核是否可被外部输入触发。
+    - 3. 通过静态代码路径、配置约束和文档声明复核，确认“故意混淆，隐藏真实逻辑”是否能够真实发生，并记录触发条件、影响范围和阻断点。
+    fix_suggestion: 清晰编写，移除混淆。同时补充最小权限、输入校验、可观测性和默认拒绝策略。
+    source_context:
+    - MITRE CWE-912 Hidden Functionality
+    - 链接：https://cwe.mitre.org/data/definitions/912.html
+    - 关键上下文：Description；Extended Description；Detection Methods
+    - OWASP AI Agent Security Cheat Sheet
+    - 链接：https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html
+    - 关键上下文：Tool Security & Least Privilege；Monitoring and Logging
+    detection:
+      type: forbid_pattern
+      include_globs: *id001
+      patterns:
+      - obfuscat
+      - eval\(atob
+      - stringFromCharCode
+      - packed
+      pass_if: no_match
+      reason: 发现禁用模式即判定未通过
+    pass_condition: no_match
+    on_fail:
+      action: require_review
+      reason: 未通过静态规则：检查是否通过代码混淆隐藏高风险能力
